@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VolunteerHub.DataModels.Models;
 
 public partial class Organization
 {
-    public long Id { get; set; }
 
     public string Name { get; set; } = null!;
 
@@ -15,7 +15,9 @@ public partial class Organization
 
     public DateTime CreatedAt { get; set; }
 
-    public DateTime UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    [DatabaseGeneratedAttribute(DatabaseGeneratedOption.Identity)]
 
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
+    public int Id { get; set; }
+
 }

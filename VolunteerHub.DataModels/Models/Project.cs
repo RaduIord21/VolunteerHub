@@ -7,6 +7,7 @@ public partial class Project
 {
     public long Id { get; set; }
 
+
     public long OrganizationId { get; set; }
 
     public long UserId { get; set; }
@@ -19,15 +20,13 @@ public partial class Project
 
     public DateTime? EndDate { get; set; }
 
-    public string OwnerId { get; set; }
+    public string OwnerId { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 
     public virtual ICollection<Announcement> Announcements { get; set; } = new List<Announcement>();
-
-    public virtual User Owner { get; set; } = null!;
 
     public virtual ICollection<ProjectStat> ProjectStats { get; set; } = new List<ProjectStat>();
 

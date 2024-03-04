@@ -20,17 +20,24 @@ namespace VolunteerHub.Backend.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
         private readonly JwtService _jwtService;
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceProvider _serviceProvider; 
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
+
         public AuthController(
             IUserRepository userRepository,
             IMapper mapper,
             JwtService jwtService,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            UserManager<User> userManager,
+            SignInManager<User> signInManager)
         {
             _userRepository = userRepository;
             _mapper = mapper;
             _jwtService = jwtService;
             _serviceProvider = serviceProvider;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
         [AllowAnonymous]
         [HttpPost("register")]
@@ -44,24 +51,32 @@ namespace VolunteerHub.Backend.Controllers
         }
         [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<IActionResult> LoginAsync(LoginDto loginDto)
-        {
-            var userManager = _serviceProvider.GetService<UserManager<IdentityUser>>();
-            var user =  await userManager.FindByEmailAsync(loginDto.Email);
-            if (user == null)
+        public async Task<IActionResult> LoginAsync(LoginDto loginDto){
+            if (ModelState.IsValid)
             {
-                return BadRequest("Invalid user");
-            }   
-            if (user.PasswordHash != loginDto.Password){
-                return BadRequest("Invalid Passowrd");  
+                var result = await _signInManager.PasswordSignInAsync(loginDto.Email, loginDto.Password, loginDto.RememberMe, false);
+
+                if (result.Succeeded)
+                {
+                    var user = await _userManager.FindByEmailAsync(loginDto.Email);
+                    if (user != null) { 
+                        var jwt = _jwtService.Generate(user.Id);
+
+                        Response.Cookies.Append("jwt", jwt, new CookieOptions
+                        {
+                            HttpOnly = true
+                        });
+                    }
+
+                } else {
+
+                    ModelState.AddModelError(string.Empty, "Invalid Login Attempt");
+                    return BadRequest("Invalid user");
+
+                }
+
             }
 
-            var jwt = _jwtService.Generate(user.Id);
-
-            Response.Cookies.Append("jwt", jwt, new CookieOptions
-            {
-                HttpOnly = true
-            });
             return Ok("Success");
         }
 
@@ -78,7 +93,6 @@ namespace VolunteerHub.Backend.Controllers
             }
             catch (Exception _)
             {
-
                 return BadRequest("Crapa");
             }  
         }

@@ -17,6 +17,7 @@ namespace VolunteerHub.Backend.Helpers
         public long AddOrganization(Organization organization)
         {
             _organizationRepository.Add(organization);
+            _organizationRepository.Save();
             return organization.Id;
         }
     }

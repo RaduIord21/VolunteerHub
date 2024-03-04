@@ -16,6 +16,8 @@ using VolunteerHub.Backend.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddDbContext<VolunteerHubContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("VolunteerHub.Backend")));
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 //!!builder.Services.AddEndpointsApiExplorer();
@@ -34,14 +36,12 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
 });
-builder.Services.AddDbContext<VolunteerHubContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("VolunteerHub.Backend")));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 builder.Services.AddScoped<OrganizationManager>();
 builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<UserManager<IdentityUser>>();
+builder.Services.AddScoped<UserManager<User>>();
 
 
 builder.Services.AddCors(

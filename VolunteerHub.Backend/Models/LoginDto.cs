@@ -1,9 +1,17 @@
-﻿namespace VolunteerHub.Backend.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace VolunteerHub.Backend.Models
 {
     public class LoginDto
     {
-        public string Email { get; set; } = null!;
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
+        [Required]
+        [DataType(DataType.Password)]
+        public string? Password { get; set; }
 
-        public string Password { get; set; } = null!;
+        [Display(Name = "Remember Me")]
+        public bool RememberMe { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using System.Reflection;
 
 namespace VolunteerHub.DataModels.Models;
 
@@ -12,8 +13,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
     {
     }
 
-    //public VolunteerHubContext(DbContextOptions<VolunteerHubContext> options)
-    public VolunteerHubContext(DbContextOptions options)
+    public VolunteerHubContext(DbContextOptions<VolunteerHubContext> options)
         : base(options)
     {
     }
@@ -30,11 +30,9 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
 
     public virtual DbSet<ProjectTask> ProjectTasks { get; set; }
 
-    public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
-    public virtual DbSet<UserRole> UserRoles { get; set; }
 
     public virtual DbSet<UserStat> UserStats { get; set; }
 
@@ -89,7 +87,6 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.ToTable("Organization");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.Adress).HasMaxLength(255);
             entity.Property(e => e.Contact).HasMaxLength(255);
@@ -119,10 +116,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
                 .IsUnicode(false);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Owner).WithMany(p => p.Projects)
-                .HasForeignKey(d => d.OwnerId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("project_ownerid_foreign");
+            
         });
 
         modelBuilder.Entity<ProjectStat>(entity =>
@@ -157,9 +151,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.Property(e => e.StartDate).HasColumnType("datetime");
             entity.Property(e => e.Status).HasMaxLength(255);
 
-            entity.HasOne(d => d.Assignee).WithMany(p => p.ProjectTasks)
-                .HasForeignKey(d => d.AssigneeId)
-                .HasConstraintName("projecttask_assigneeid_foreign");
+            
 
             entity.HasOne(d => d.Project).WithMany(p => p.ProjectTasks)
                 .HasForeignKey(d => d.ProjectId)
@@ -167,17 +159,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
                 .HasConstraintName("projecttask_projectid_foreign");
         });
 
-        modelBuilder.Entity<Role>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("roles_id_primary");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
-            entity.Property(e => e.Role1)
-                .HasMaxLength(255)
-                .HasColumnName("Role");
-        });
+       
 
         /*modelBuilder.Entity<User>(entity =>
         {
@@ -196,24 +178,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
                 .HasConstraintName("user_organizationid_foreign");
         });*/
 
-        modelBuilder.Entity<UserRole>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("userroles_id_primary");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
-
-            entity.HasOne(d => d.Role).WithMany(p => p.UserRoles)
-                .HasForeignKey(d => d.RoleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("userroles_roleid_foreign");
-
-            entity.HasOne(d => d.User).WithMany(p => p.UserRoles)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("userroles_userid_foreign");
-        });
+       
 
         modelBuilder.Entity<UserStat>(entity =>
         {
@@ -222,15 +187,42 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-
-            entity.HasOne(d => d.User).WithMany(p => p.UserStats)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("userstats_userid_foreign");
         });
 
         OnModelCreatingPartial(modelBuilder);
     }
 
+    public override int SaveChanges()
+    {
+        AddTimestamps();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+    {
+        AddTimestamps();
+        return base.SaveChangesAsync();
+    }
+
+    private void AddTimestamps()
+    {
+        var entities = ChangeTracker.Entries()
+            .Where(x => x.Entity.GetType().GetProperty("CreatedAt") != null && (x.State == EntityState.Added || x.State == EntityState.Modified));
+
+        foreach (var entity in entities)
+        {
+            var now = DateTime.UtcNow; // current datetime
+
+            if (entity.State == EntityState.Added)
+            {
+                entity.Entity.GetType().GetProperty("CreatedAt").SetValue(entity.Entity, now);
+            }    
+                entity.Entity.GetType().GetProperty("UpdatedAt").SetValue(entity.Entity, now);
+            
+        }
+    }
+
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+
+
 }

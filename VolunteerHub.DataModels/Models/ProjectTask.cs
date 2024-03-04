@@ -33,7 +33,6 @@ public partial class ProjectTask
 
     public string Name { get; set; } = null!;
 
-    public virtual User? Assignee { get; set; }
 
     public virtual Project Project { get; set; } = null!;
 }

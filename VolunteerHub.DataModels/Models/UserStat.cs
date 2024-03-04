@@ -7,7 +7,7 @@ public partial class UserStat
 {
     public long Id { get; set; }
 
-    public string UserId { get; set; }
+    public string UserId { get; set; } = null!;
 
     public long TasksCompleted { get; set; }
 
@@ -15,5 +15,4 @@ public partial class UserStat
 
     public long TasksUncompleted { get; set; }
 
-    public virtual User User { get; set; } = null!;
 }
