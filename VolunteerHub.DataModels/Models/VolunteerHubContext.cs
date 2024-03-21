@@ -88,11 +88,12 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
 
             entity.Property(e => e.Id)
                 .HasColumnName("id");
-            entity.Property(e => e.Adress).HasMaxLength(255);
-            entity.Property(e => e.Contact).HasMaxLength(255);
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
-            entity.Property(e => e.Name).HasMaxLength(255);
+            entity.Property(e => e.Adress).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Contact).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Code).HasColumnName("Code");
         });
 
         modelBuilder.Entity<Project>(entity =>
@@ -159,26 +160,14 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
                 .HasConstraintName("projecttask_projectid_foreign");
         });
 
-       
-
-        /*modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<User>(entity =>
         {
-            //entity.HasKey(e => e.Id).HasName("user_id_primary");
-
-            entity.ToTable("User");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
-            entity.Property(e => e.Email)
-                .HasMaxLength(255)
-                .HasColumnName("email");
-            entity.HasOne(d => d.Organization).WithMany(p => p.Users)
-                .HasForeignKey(d => d.OrganizationId)
-                .HasConstraintName("user_organizationid_foreign");
-        });*/
-
-       
+            entity
+            .HasOne(u => u.Organization)
+            .WithMany(o => o.Users)
+            .HasForeignKey(u => u.OrganizationId);
+        });
+        
 
         modelBuilder.Entity<UserStat>(entity =>
         {
@@ -192,11 +181,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
         OnModelCreatingPartial(modelBuilder);
     }
 
-    public override int SaveChanges()
-    {
-        AddTimestamps();
-        return base.SaveChanges();
-    }
+    
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
     {

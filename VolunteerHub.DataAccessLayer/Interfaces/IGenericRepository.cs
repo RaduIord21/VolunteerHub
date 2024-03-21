@@ -10,7 +10,7 @@ namespace VolunteerHub.DataAccessLayer.Interfaces
     public interface IGenericRepository<T> where T : class
     {
         IList<T> GetAll();
-        T? GetById(long id);
+        T? GetById(long? id);
         void Update(T entity);
         void Delete(T entity);
         IList<T> Get(Expression<Func<T, bool>> expression);

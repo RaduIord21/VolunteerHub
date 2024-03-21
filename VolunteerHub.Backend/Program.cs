@@ -37,7 +37,6 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
 });
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 builder.Services.AddScoped<OrganizationManager>();
 builder.Services.AddScoped<JwtService>();
@@ -83,8 +82,7 @@ using (var scope = app.Services.CreateScope())
     // dotnet user-secrets set SeedUserPW <pw>
 
     var testUserPw = builder.Configuration.GetValue<string>("SeedUserPW");
-
-    await SeedData.Initialize(services, testUserPw);
+    //await SeedData.Initialize(services, testUserPw);
 }
 
 
@@ -92,7 +90,7 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors();
+    app.UseCors("AllowSpecificOrigin");
     app.UseSwagger();
     app.UseSwaggerUI();
     // To serve the Swagger UI at the app's root

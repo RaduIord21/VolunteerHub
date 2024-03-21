@@ -9,5 +9,9 @@ namespace VolunteerHub.DataAccessLayer.Interfaces
 {
     public interface IUserRepository : IGenericRepository<User>
     {
+        public User? GetByEmail(string email);
+        public Task<User> GetByEmaiAsync(string email);
+
+
     }
 }

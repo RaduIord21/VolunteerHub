@@ -16,6 +16,15 @@ namespace VolunteerHub.DataAccessLayer.Repositories
             _context = context;
         }
 
+        public Task<User> GetByEmaiAsync(string email)
+        {
+            throw new NotImplementedException();
+        }
+
+        public User? GetByEmail(string email)
+        {
+            return _context.Users.FirstOrDefault(u => u.Email == email);
+        }
        
     }
 }

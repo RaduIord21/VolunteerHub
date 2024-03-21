@@ -27,10 +27,15 @@ namespace VolunteerHub.DataAccessLayer.Repositories
             return dataSet.ToList();
         }
 
-        public T? GetById(long id)
+        public T? GetById(long? id)
         {
+            if (id == null)
+            {
+                return null;
+            }
             return dataSet.Find(id);
         }
+        
 
         public void Update(T obj)
         {
@@ -58,5 +63,7 @@ namespace VolunteerHub.DataAccessLayer.Repositories
         {
             context.SaveChanges();
         }
+
+       
     }
 }

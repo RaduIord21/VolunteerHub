@@ -6,7 +6,8 @@ namespace VolunteerHub.DataModels.Models;
 
 public class User : IdentityUser
 {
-    public virtual Organization? Organization { get; set; }
+    public long? OrganizationId { get; set; }
+    public Organization? Organization { get; set; } = null!;
 
     public virtual ICollection<ProjectTask> ProjectTasks { get; set; } = new List<ProjectTask>();
 

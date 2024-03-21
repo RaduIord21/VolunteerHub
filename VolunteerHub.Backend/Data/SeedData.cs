@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
 using VolunteerHub.Backend.Helpers;
 using VolunteerHub.DataModels.Models;
 
@@ -9,8 +8,6 @@ namespace VolunteerHub.Backend.Data
 {
     public static class SeedData
     {
-       
-
         private static long EnsureOrganization(IServiceProvider serviceProvider, string organizationName, string adress, string contact)
         {
             var organizationManager = serviceProvider.GetService<OrganizationManager>();
@@ -18,30 +15,31 @@ namespace VolunteerHub.Backend.Data
             {
                 Name = organizationName,
                 Adress = adress,
-                Contact = contact
+                Contact = contact,
+                CreatedAt = DateTime.UtcNow
             };
             return organizationManager.AddOrganization(organization);
         }
 
         private static async Task<string> EnsureUser(IServiceProvider serviceProvider,
-                                                    string testUserPw, string UserName, long? organizationId = null)
+                                                    string testUserPw, string UserName, string email, long? organizationId = null)
         {
             var userManager = serviceProvider.GetService<UserManager<User>>();
-
             var user = await userManager.FindByNameAsync(UserName);
             if (user == null)
             {
                 user = new User
                 {
+                    Email = email,
                     UserName = UserName,
-                    EmailConfirmed = false,
-                    PhoneNumberConfirmed = false,
+                    EmailConfirmed = true,
+                    PhoneNumberConfirmed = true,
                     TwoFactorEnabled = false,
                     LockoutEnabled = false,
                     AccessFailedCount = 0
-                    
+
                 };
-                await userManager.CreateAsync(user,"Parola123!");
+                await userManager.CreateAsync(user, "Parola123!");
             }
 
             if (user == null)
@@ -52,8 +50,8 @@ namespace VolunteerHub.Backend.Data
             return user.Id;
         }
 
-        private static async Task<IdentityResult> EnsureRole(IServiceProvider serviceProvider,
-                                                                      string uid, string role)
+        private static async Task<IdentityRole> EnsureRole(IServiceProvider serviceProvider,
+                                                                       string role)
         {
             var roleManager = serviceProvider.GetService<RoleManager<IdentityRole>>();
 
@@ -62,14 +60,22 @@ namespace VolunteerHub.Backend.Data
                 throw new Exception("roleManager null");
             }
 
-            IdentityResult IR;
+            IdentityRole IR;
             if (!await roleManager.RoleExistsAsync(role))
             {
-                IR = await roleManager.CreateAsync(new IdentityRole(role));
+                IR = new IdentityRole(role);
+                await roleManager.CreateAsync(IR);
             }
-
+            else
+            {
+                IR = await roleManager.FindByNameAsync(role);
+            }
+            return IR;
+        }
+        public static async Task<IdentityResult> EnsureUserToRole(IServiceProvider serviceProvider, string uid, IdentityRole role)
+        {
             var userManager = serviceProvider.GetService<UserManager<User>>();
-
+            IdentityResult IR;
             if (userManager == null)
             {
                 throw new Exception("userManager is null");
@@ -82,10 +88,11 @@ namespace VolunteerHub.Backend.Data
                 throw new Exception("The testUserPw password was probably not strong enough!");
             }
 
-            IR = await userManager.AddToRoleAsync(user, role);
+            IR = await userManager.AddToRoleAsync(user, role.Name);
 
             return IR;
         }
+
         public static void SeedDB(VolunteerHubContext context, string adminID)
         {
             if (context.Users.Any())
@@ -117,14 +124,23 @@ namespace VolunteerHub.Backend.Data
                 // dotnet user-secrets set SeedUserPW <pw>
                 // The admin user can do anything
 
-                var adminID = await EnsureUser(serviceProvider, testUserPw, "admin@test.com");
-                await EnsureRole(serviceProvider, adminID, Constants.AdministratorRole);
 
-                var organizationId = EnsureOrganization(serviceProvider, "Org1","Aici", "Pronto");
+                var organizationId = EnsureOrganization(serviceProvider, "Admin", "N/A", "admin");
+                var adminID = await EnsureUser(serviceProvider, testUserPw, "Admin", "admin@test.com", organizationId);
+                var role = await EnsureRole(serviceProvider, Constants.AdministratorRole);
+                await EnsureUserToRole(serviceProvider, adminID, role);
+
+
+                organizationId = EnsureOrganization(serviceProvider, "Org1", "Aici", "Pronto");
                 // allowed user can create and edit contacts that they create
-                var coordinatorId = await EnsureUser(serviceProvider, testUserPw, "manager@contoso.com");
-                await EnsureRole(serviceProvider, coordinatorId, Constants.CoordinatorRole);
+                var coordinatorId = await EnsureUser(serviceProvider, testUserPw, "TestCoordonator", "organizer@test.com", organizationId);
 
+                role = await EnsureRole(serviceProvider, Constants.CoordinatorRole);
+                await EnsureUserToRole(serviceProvider, coordinatorId, role);
+
+                var volunteerId = await EnsureUser(serviceProvider, testUserPw, "TestVoluntar", "volunteer@test.com", organizationId);
+                role = await EnsureRole(serviceProvider, Constants.VolunteerRole);
+                await EnsureUserToRole(serviceProvider, volunteerId, role);
                 SeedDB(context, coordinatorId);
             }
         }
