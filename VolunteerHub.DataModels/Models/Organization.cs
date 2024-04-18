@@ -26,8 +26,9 @@ public partial class Organization
 
     [DatabaseGeneratedAttribute(DatabaseGeneratedOption.Identity)]
     public long Id { get; set; }
+    public virtual ICollection<User>? Users { get; set; }
+    public virtual ICollection<Project>? Projects { get; set; }
 
-    public ICollection<User> Users { get; set; }
 
 
 }

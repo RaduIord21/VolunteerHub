@@ -63,7 +63,5 @@ namespace VolunteerHub.DataAccessLayer.Repositories
         {
             context.SaveChanges();
         }
-
-       
     }
 }

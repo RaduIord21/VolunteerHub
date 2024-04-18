@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VolunteerHub.DataModels.Models;
 
@@ -11,9 +12,11 @@ using VolunteerHub.DataModels.Models;
 namespace VolunteerHub.DataModels.Migrations
 {
     [DbContext(typeof(VolunteerHubContext))]
-    partial class VolunteerHubContextModelSnapshot : ModelSnapshot
+    [Migration("20240408134150_44104082024")]
+    partial class _44104082024
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -266,11 +269,8 @@ namespace VolunteerHub.DataModels.Migrations
             modelBuilder.Entity("VolunteerHub.DataModels.Models.Project", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
@@ -289,7 +289,7 @@ namespace VolunteerHub.DataModels.Migrations
 
                     b.Property<string>("OwnerId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProjectName")
                         .IsRequired()
@@ -299,12 +299,13 @@ namespace VolunteerHub.DataModels.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id")
                         .HasName("project_id_primary");
 
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Project", (string)null);
                 });
@@ -568,21 +569,9 @@ namespace VolunteerHub.DataModels.Migrations
 
             modelBuilder.Entity("VolunteerHub.DataModels.Models.Project", b =>
                 {
-                    b.HasOne("VolunteerHub.DataModels.Models.Organization", "Organization")
+                    b.HasOne("VolunteerHub.DataModels.Models.User", null)
                         .WithMany("Projects")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VolunteerHub.DataModels.Models.User", "Owner")
-                        .WithMany("Projects")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("Owner");
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("VolunteerHub.DataModels.Models.ProjectStat", b =>
@@ -631,8 +620,6 @@ namespace VolunteerHub.DataModels.Migrations
 
             modelBuilder.Entity("VolunteerHub.DataModels.Models.Organization", b =>
                 {
-                    b.Navigation("Projects");
-
                     b.Navigation("Users");
                 });
 

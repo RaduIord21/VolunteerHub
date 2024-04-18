@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using VolunteerHub.Backend.Helpers;
 using VolunteerHub.DataModels.Models;
@@ -60,7 +61,7 @@ namespace VolunteerHub.Backend.Data
                 throw new Exception("roleManager null");
             }
 
-            IdentityRole IR;
+            IdentityRole? IR;
             if (!await roleManager.RoleExistsAsync(role))
             {
                 IR = new IdentityRole(role);

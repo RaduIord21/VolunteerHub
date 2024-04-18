@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VolunteerHub.DataModels.Models;
 
@@ -11,9 +12,11 @@ using VolunteerHub.DataModels.Models;
 namespace VolunteerHub.DataModels.Migrations
 {
     [DbContext(typeof(VolunteerHubContext))]
-    partial class VolunteerHubContextModelSnapshot : ModelSnapshot
+    [Migration("20240408151944_181920240408")]
+    partial class _181920240408
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -289,7 +292,7 @@ namespace VolunteerHub.DataModels.Migrations
 
                     b.Property<string>("OwnerId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProjectName")
                         .IsRequired()
@@ -299,12 +302,15 @@ namespace VolunteerHub.DataModels.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id")
                         .HasName("project_id_primary");
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Project", (string)null);
                 });
@@ -574,15 +580,11 @@ namespace VolunteerHub.DataModels.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VolunteerHub.DataModels.Models.User", "Owner")
+                    b.HasOne("VolunteerHub.DataModels.Models.User", null)
                         .WithMany("Projects")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UserId");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("VolunteerHub.DataModels.Models.ProjectStat", b =>

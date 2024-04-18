@@ -51,9 +51,33 @@ namespace VolunteerHub.Backend.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterDto registerDto)
         {
-            Console.WriteLine("Apel register");
-            _userRepository.Add(_mapper.Map<User>(registerDto));
-            _userRepository.Save();
+            var u = new User
+            {
+                UserName = registerDto.Username,
+                Email = registerDto.Email
+            };
+            var user = _userManager.FindByNameAsync(registerDto.Username);
+            //_userRepository.Add(_mapper.Map<User>(registerDto));
+            //_userRepository.Save();
+            if (user.Result != null)
+            {
+                return BadRequest("User Already Exists");
+            }
+            var r = _userManager.CreateAsync(u, registerDto.Password);
+            if (r.Result == null)
+            {
+                return BadRequest("Could not be created");
+            }
+
+            var myUser = _userManager.FindByNameAsync(u.UserName);
+            if (myUser.Result != null)
+            {
+                var addRole = _userManager.AddToRoleAsync(myUser.Result, Constants.VolunteerRole);
+                if (addRole.Result == null)
+                {
+                    return BadRequest("Nu s-a adaugat rolul");
+                }
+            }
             Console.WriteLine("S-a salvat ce a fost trimis din backend");
             return Ok("Success");
         }
@@ -63,7 +87,7 @@ namespace VolunteerHub.Backend.Controllers
         public async Task<IActionResult> LoginAsync(LoginDto loginDto)
         {
             try
-            { 
+            {
                 if (ModelState.IsValid)
                 {
                     var result = await _signInManager.PasswordSignInAsync(loginDto.UserName, loginDto.Password, loginDto.RememberMe, false);
@@ -78,21 +102,21 @@ namespace VolunteerHub.Backend.Controllers
                             {
                                 HttpOnly = true
                             });
+                            return Ok("Success");
                         }
+                        return BadRequest("Not possible bos");
                     }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, "Invalid Login Attempt");
-                        return BadRequest("Invalid user");
-                    }
+                    ModelState.AddModelError(string.Empty, "Invalid Login Attempt");
+                    return BadRequest("Invalid user");
                 }
+                return BadRequest("Error :::");
+
             }
             catch (Exception e)
             {
-
                 Console.Write(e + "EEERRROOOAAARRREEE");
+                return BadRequest("Not pssible bos");
             }
-            return Ok("Success");
         }
         [HttpGet("user")]
         public new IActionResult User()
@@ -100,15 +124,24 @@ namespace VolunteerHub.Backend.Controllers
             try
             {
                 var jwt = Request.Cookies["jwt"];
+                if (jwt == null)
+                {
+                    return BadRequest("Invalid cookie");
+                }
                 var token = _jwtService.Verify(jwt);
                 var issuer = token.Issuer;
                 var user = _userManager.FindByIdAsync(issuer);
-                if (user == null)
+                if (user.Result == null)
                 {
                     return BadRequest("Invalid User !!!");
                 }
                 var userRoles = _userManager.GetRolesAsync(user.Result).Result[0];
-                return Ok(user.Result);
+                var resp = new
+                {
+                    user = user.Result,
+                    roles = userRoles
+                };
+                return Ok(resp);
             }
             catch (Exception _)
             {

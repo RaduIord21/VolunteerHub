@@ -33,6 +33,5 @@ public partial class ProjectTask
 
     public string Name { get; set; } = null!;
 
-
     public virtual Project Project { get; set; } = null!;
 }

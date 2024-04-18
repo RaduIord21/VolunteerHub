@@ -99,23 +99,23 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
         modelBuilder.Entity<Project>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("project_id_primary");
-
             entity.ToTable("Project");
-
-            entity.HasIndex(e => e.GoalCode, "project_goalcode_unique").IsUnique();
-
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
+            entity.Property(e => e.ProjectName).HasMaxLength(255).IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.EndDate)
                 .HasColumnType("date")
                 .HasColumnName("endDate");
-            entity.Property(e => e.GoalCode)
-                .HasMaxLength(255)
-                .IsUnicode(false);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            entity.HasOne(u => u.Owner).WithMany(p => p.Projects).HasForeignKey(u => u.OwnerId);
+
+            entity
+            .HasOne(o => o.Organization)
+            .WithMany(p => p.Projects).
+            HasForeignKey(p => p.OrganizationId);
+            
 
             
         });
@@ -139,9 +139,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
         modelBuilder.Entity<ProjectTask>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("projecttask_id_primary");
-
             entity.ToTable("ProjectTask");
-
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");

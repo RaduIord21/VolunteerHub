@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authorization;
 using VolunteerHub.Backend.Data;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +23,7 @@ builder.Services.AddDbContext<VolunteerHubContext>(options =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 //!!builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddDefaultIdentity<User>(
-    options => options.SignIn.RequireConfirmedAccount = true)
+    options => options.SignIn.RequireConfirmedAccount = false)
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<VolunteerHubContext>();
 
@@ -38,6 +39,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<OrganizationManager>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<UserManager<User>>();
@@ -56,7 +58,8 @@ builder.Services.AddCors(
         });
     }
     );
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(x =>
+                x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
 var mapperConfig = new MapperConfiguration(mc =>
 {
