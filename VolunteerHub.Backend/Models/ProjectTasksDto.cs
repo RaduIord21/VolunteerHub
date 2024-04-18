@@ -3,10 +3,10 @@
     public class ProjectTasksDto
     {
         
-        public string AssigneeName { get; set; }
         public string Name { get; set; } = null!;
 
-        public long Description { get; set; }
+        public long? ProjectId { get; set; }
+        public string Description { get; set; }
 
         public string Action { get; set; } = null!;
         public DateTime? EndDate {  get; set; } 

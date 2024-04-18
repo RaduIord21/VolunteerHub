@@ -149,6 +149,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.Property(e => e.Name).HasMaxLength(255);
             entity.Property(e => e.StartDate).HasColumnType("datetime");
             entity.Property(e => e.Status).HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(255);
 
             
 

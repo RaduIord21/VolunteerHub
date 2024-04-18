@@ -43,6 +43,7 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<OrganizationManager>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<UserManager<User>>();
+builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 
 
 builder.Services.AddCors(

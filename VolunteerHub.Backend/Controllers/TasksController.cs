@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using VolunteerHub.Backend.Models;
+using VolunteerHub.DataAccessLayer.Interfaces;
 using VolunteerHub.DataModels.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -13,30 +14,57 @@ namespace VolunteerHub.Backend.Controllers
     public class TasksController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
+        private readonly IProjectRepository _projectRepository;
+        private readonly ITaskRepository _taskRepository;
+        
         public TasksController(
-            UserManager<User> userManager)
+            UserManager<User> userManager,
+            IProjectRepository projectRepository,
+            ITaskRepository taskRepository
+            )
         {
             _userManager = userManager;
+            _projectRepository = projectRepository;
+            _taskRepository = taskRepository;
         }
 
-        [Authorize(Roles = "Coordinator")]
-        [Authorize(Roles ="Admin")]
+        [HttpGet("tasks/{projectId}")]
+        public IActionResult Tasks([FromRoute(Name = "projectId")] string DtoId)
+        {
+            long Id;
+            Project? project;
+            if (long.TryParse(DtoId, out Id))
+            {
+                project = _projectRepository.GetById(Id);
+                if(project == null)
+                {
+                    return BadRequest("Project Not Found");
+                }
+            }
+            else
+            {
+                return BadRequest("conversion impossible");
+            }
+            var tasks = _taskRepository.Get(t => t.ProjectId == project.Id);
+            return Ok(tasks);
+        }
+
+        
         [HttpPost("createTask")]
-        public IActionResult createTask(ProjectTasksDto ProjectTaskDto)
+        public IActionResult CreateTask([FromBody]ProjectTasksDto ProjectTaskDto)
         {
             
             try
             {
-                var userID = _userManager.FindByNameAsync(ProjectTaskDto.AssigneeName);
-                if (userID.Result == null)
+                if (ProjectTaskDto.ProjectId == null)
                 {
-                    return BadRequest("No user found");
+                    return BadRequest("No project found");
                 }
-
                 var Task = new ProjectTask
                 {
-                    AssigneeId = userID.Result.Id,
+                    ProjectId = (long)ProjectTaskDto.ProjectId,
                     Name = ProjectTaskDto.Name,
+                    Action = ProjectTaskDto.Action,
                     Description = ProjectTaskDto.Description,
                     StartDate = DateTime.Now,
                     EndDate = ProjectTaskDto.EndDate,
@@ -46,7 +74,9 @@ namespace VolunteerHub.Backend.Controllers
                     NeedsValidation = ProjectTaskDto.NeedsValidation,
                     Status = "InProgress"
                 };
-                return Ok(Task);
+                _taskRepository.Add(Task);
+                _taskRepository.Save();
+                return Ok("Success");
             }
             catch (Exception)
             {

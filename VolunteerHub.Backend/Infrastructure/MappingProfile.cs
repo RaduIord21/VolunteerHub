@@ -13,6 +13,7 @@ namespace VolunteerHub.Backend.Infrastructure
            CreateMap<ProjectTask, ProjectTasksDto>().ReverseMap();
            CreateMap<Organization, OrganizationDto>().ReverseMap();
            CreateMap<Project, ProjectsDto>().ReverseMap();
+          
         }
     }
 }

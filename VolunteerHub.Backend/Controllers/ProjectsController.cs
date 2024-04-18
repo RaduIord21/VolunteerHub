@@ -82,7 +82,6 @@ namespace VolunteerHub.Backend.Controllers
                     return BadRequest("Organization not found for the current user");
                 }
                 var projects = _projectRepository.Get(p => p.OrganizationId == organization.Id);
-
                 return Ok(projects);
             }
             catch (Exception e)
@@ -116,6 +115,7 @@ namespace VolunteerHub.Backend.Controllers
 
                 var project = new Project
                 {
+                   
                     Organization = user.Result.Organization,
                     OrganizationId = (long)user.Result.OrganizationId,
                     ProjectName = projectsDto.ProjectName,

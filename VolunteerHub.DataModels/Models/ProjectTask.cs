@@ -19,7 +19,7 @@ public partial class ProjectTask
 
     public DateTime? EndDate { get; set; }
 
-    public long Description { get; set; }
+    public string Description { get; set; }
 
     public string Action { get; set; } = null!;
 
