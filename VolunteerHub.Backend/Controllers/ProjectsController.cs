@@ -196,7 +196,28 @@ namespace VolunteerHub.Backend.Controllers
             return Ok("Description Changed sucessfully");
         }
 
-        [HttpPost("deleteProject")]
+
+        [HttpPost("addMembers")]    
+        public IActionResult AddMembers([FromBody]ProjectUserDto projectUsers) 
+        {
+            if (projectUsers.UserIds == null)
+            {
+                return BadRequest("No users found");
+            }
+            foreach(var Uid in projectUsers.UserIds)
+            {
+                var u = _userManager.FindByIdAsync(Uid);
+                if(u.Result == null)
+                {
+                    continue;
+                }
+                u.Result.ProjectId = projectUsers.ProjectId;
+                var _ = _userManager.UpdateAsync(u.Result).Result;
+            }
+            return Ok("Success");
+        }
+
+       [HttpPost("deleteProject")]
         public IActionResult deleteProject(DeleteProjectDto deleteProjectDto)
         {
             var project = _projectRepository.GetById(deleteProjectDto.Id);
@@ -208,5 +229,7 @@ namespace VolunteerHub.Backend.Controllers
             _projectRepository.Save();
             return Ok("Success");
         }
+
+        
     }
 }

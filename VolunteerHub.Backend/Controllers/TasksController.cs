@@ -17,31 +17,51 @@ namespace VolunteerHub.Backend.Controllers
         private readonly UserManager<User> _userManager;
         private readonly IProjectRepository _projectRepository;
         private readonly ITaskRepository _taskRepository;
-        private readonly IMapper _mapper;
         
         public TasksController(
             UserManager<User> userManager,
             IProjectRepository projectRepository,
-            ITaskRepository taskRepository,
-            IMapper mapper
+            ITaskRepository taskRepository
             )
         {
             _userManager = userManager;
             _projectRepository = projectRepository;
             _taskRepository = taskRepository;
-            _mapper = mapper;
         }
 
-        [HttpGet("MyTasks/{userId}")]
-        public IActionResult MyTasks([FromRoute(Name = "userId")] string DtoId)
+        [HttpPost("assignTask")]
+        public IActionResult AssignTask(AssingeeUserDto assingeeUserDto)
         {
-            var user = _userManager.FindByIdAsync(DtoId);
-            if(user.Result == null)
+            var projectTask = _taskRepository.GetById(assingeeUserDto.TaskId);
+            if (projectTask == null)
             {
-                return BadRequest("No user found");
+                return BadRequest("No Task found");
             }
-            var tasks = _taskRepository.Get(t => t.AssigneeId == user.Result.Id);
-            return Ok(tasks);
+            projectTask.AssigneeId = assingeeUserDto.AsingeeId;
+            _taskRepository.Update(projectTask);
+            _taskRepository.Save();
+            return Ok("Success");
+        }
+
+        [HttpGet("projectMembersForTask/{projectId}")]
+        public IActionResult ProjectMembers([FromRoute(Name = "projectId")] string projectId)
+        {
+            long Id;
+            Project? project;
+            if (long.TryParse(projectId, out Id))
+            {
+                project = _projectRepository.GetById(Id);
+                if (project == null)
+                {
+                    return BadRequest("Project Not Found");
+                }
+            }
+            else
+            {
+                return BadRequest("conversion impossible");
+            }
+            var users = _userManager.Users.Where(u => u.ProjectId == Id);
+            return Ok(users);
         }
 
         [HttpGet("tasks/{projectId}")]
@@ -64,8 +84,6 @@ namespace VolunteerHub.Backend.Controllers
             var tasks = _taskRepository.Get(t => t.ProjectId == project.Id);
             return Ok(tasks);
         }
-
-
 
         [HttpPost("updateTask")]
         public IActionResult UpdateTask(UpdateTaskDto updateTaskDto) {
