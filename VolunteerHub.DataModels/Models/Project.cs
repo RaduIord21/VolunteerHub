@@ -20,4 +20,7 @@ public partial class Project
     public virtual ICollection<ProjectStat> ProjectStats { get; set; } = new List<ProjectStat>();
 
     public virtual ICollection<ProjectTask> ProjectTasks { get; set; } = new List<ProjectTask>();
+
+    public virtual ICollection<User>? Users { get; set; } = new List<User>();
+
 }

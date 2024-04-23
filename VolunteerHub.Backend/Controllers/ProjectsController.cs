@@ -170,8 +170,10 @@ namespace VolunteerHub.Backend.Controllers
             }
         }
 
+       
+
         [HttpPost("changeDescription")]
-        public IActionResult changeDescription([FromBody]ChangeDescriptionDto changeDescriptionDto)
+        public IActionResult ChangeDescription([FromBody]ChangeDescriptionDto changeDescriptionDto)
         
         {
             if (changeDescriptionDto == null)
@@ -184,7 +186,7 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("No project found");
             }
 
-            if(changeDescriptionDto.Description.IsNullOrEmpty())
+            if(changeDescriptionDto.Description == null)
             {
                 return BadRequest("No description");
             }

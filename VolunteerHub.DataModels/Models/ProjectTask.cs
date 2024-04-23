@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VolunteerHub.DataModels.Models;
 
@@ -13,7 +14,7 @@ public partial class ProjectTask
 
     public string Status { get; set; } = null!;
 
-    public long Progress { get; set; }
+    public decimal Progress { get; set; }
 
     public DateTime StartDate { get; set; }
 

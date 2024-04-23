@@ -141,7 +141,6 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.HasKey(e => e.Id).HasName("projecttask_id_primary");
             entity.ToTable("ProjectTask");
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.Action).HasMaxLength(255);
             entity.Property(e => e.EndDate).HasColumnType("datetime");
@@ -150,13 +149,11 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.Property(e => e.StartDate).HasColumnType("datetime");
             entity.Property(e => e.Status).HasMaxLength(255);
             entity.Property(e => e.Description).HasMaxLength(255);
-
-            
-
             entity.HasOne(d => d.Project).WithMany(p => p.ProjectTasks)
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("projecttask_projectid_foreign");
+            entity.Property(e => e.Progress).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -165,6 +162,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             .HasOne(u => u.Organization)
             .WithMany(o => o.Users)
             .HasForeignKey(u => u.OrganizationId);
+            entity.HasOne(u => u.Project).WithMany(p => p.Users).HasForeignKey(u => u.ProjectId);
         });
         
 

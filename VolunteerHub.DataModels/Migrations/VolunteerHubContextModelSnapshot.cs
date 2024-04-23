@@ -344,8 +344,11 @@ namespace VolunteerHub.DataModels.Migrations
             modelBuilder.Entity("VolunteerHub.DataModels.Models.ProjectTask", b =>
                 {
                     b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Action")
                         .IsRequired()
@@ -379,8 +382,9 @@ namespace VolunteerHub.DataModels.Migrations
                     b.Property<bool>("NeedsValidation")
                         .HasColumnType("bit");
 
-                    b.Property<long>("Progress")
-                        .HasColumnType("bigint");
+                    b.Property<decimal>("Progress")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
@@ -454,6 +458,9 @@ namespace VolunteerHub.DataModels.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -475,6 +482,8 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -619,7 +628,13 @@ namespace VolunteerHub.DataModels.Migrations
                         .WithMany("Users")
                         .HasForeignKey("OrganizationId");
 
+                    b.HasOne("VolunteerHub.DataModels.Models.Project", "Project")
+                        .WithMany("Users")
+                        .HasForeignKey("ProjectId");
+
                     b.Navigation("Organization");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("VolunteerHub.DataModels.Models.UserStat", b =>
@@ -645,6 +660,8 @@ namespace VolunteerHub.DataModels.Migrations
                     b.Navigation("ProjectStats");
 
                     b.Navigation("ProjectTasks");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("VolunteerHub.DataModels.Models.User", b =>
