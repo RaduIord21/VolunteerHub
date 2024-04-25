@@ -12,8 +12,8 @@ using VolunteerHub.DataModels.Models;
 namespace VolunteerHub.DataModels.Migrations
 {
     [DbContext(typeof(VolunteerHubContext))]
-    [Migration("20240422085502_220420241154")]
-    partial class _220420241154
+    [Migration("20240424160650_240420241906")]
+    partial class _240420241906
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -169,8 +169,8 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<long>("CreatedAt")
-                        .HasColumnType("bigint");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
@@ -180,8 +180,8 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<long>("UpdatedAt")
-                        .HasColumnType("bigint");
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
 
                     b.HasKey("Id")
                         .HasName("announcement_id_primary");
@@ -501,9 +501,6 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<long>("TasksCompleted")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("TasksUncompleted")
                         .HasColumnType("bigint");
 
                     b.Property<string>("UserId")

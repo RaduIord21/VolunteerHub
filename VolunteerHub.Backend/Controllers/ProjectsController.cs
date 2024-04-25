@@ -20,13 +20,15 @@ namespace VolunteerHub.Backend.Controllers
         private readonly UserManager<User> _userManager;
         private readonly JwtService _jwtService;
         private readonly IOrganizationRepository _organizationRepository;
+        private readonly IProjectStatsRepository _projectStatsRepository;
 
         public ProjectsController(
             IProjectRepository projectRepository,
             IMapper mapper,
             UserManager<User> userManager,
             JwtService jwtService,
-            IOrganizationRepository organizationRepository
+            IOrganizationRepository organizationRepository,
+            IProjectStatsRepository projectStatsRepository
             )
         {
             _projectRepository = projectRepository;
@@ -34,6 +36,7 @@ namespace VolunteerHub.Backend.Controllers
             _userManager = userManager;
             _jwtService = jwtService;
             _organizationRepository = organizationRepository;
+            _projectStatsRepository = projectStatsRepository;
         }
 
         [AllowAnonymous]
@@ -132,7 +135,17 @@ namespace VolunteerHub.Backend.Controllers
                 }*/
                 _projectRepository.Add(project);
                 _projectRepository.Save();
-                
+
+                var projectStat = new ProjectStat { 
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    ProjectId = project.Id,
+                    TotalTasksAsigned = 0,
+                    TotalTasksCompleted = 0,
+                    TotalTasksUncompleted = 0
+                };
+                _projectStatsRepository.Add(projectStat);
+                _projectStatsRepository.Save();
                 return Ok("Success");
             }
             catch (Exception e)
@@ -226,6 +239,8 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("Project Not found");
             }
             _projectRepository.Delete(project);
+            _projectStatsRepository.Delete(_projectStatsRepository.GetByProjectId(project.Id));
+            _projectStatsRepository.Save();
             _projectRepository.Save();
             return Ok("Success");
         }

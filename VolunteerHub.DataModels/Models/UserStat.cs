@@ -13,6 +13,5 @@ public partial class UserStat
 
     public long TasksAsigned { get; set; }
 
-    public long TasksUncompleted { get; set; }
 
 }

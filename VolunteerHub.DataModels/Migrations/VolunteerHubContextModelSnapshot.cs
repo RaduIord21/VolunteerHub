@@ -166,8 +166,8 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<long>("CreatedAt")
-                        .HasColumnType("bigint");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
@@ -177,8 +177,8 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<long>("UpdatedAt")
-                        .HasColumnType("bigint");
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
 
                     b.HasKey("Id")
                         .HasName("announcement_id_primary");
@@ -498,9 +498,6 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<long>("TasksCompleted")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("TasksUncompleted")
                         .HasColumnType("bigint");
 
                     b.Property<string>("UserId")

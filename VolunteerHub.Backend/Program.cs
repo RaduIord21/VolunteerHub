@@ -44,6 +44,9 @@ builder.Services.AddScoped<OrganizationManager>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<UserManager<User>>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+builder.Services.AddScoped<IProjectStatsRepository, ProjectStatsRepository>();
+builder.Services.AddScoped<IUserStatsRepository, UserStatsRepository>();
+builder.Services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
 
 
 builder.Services.AddCors(

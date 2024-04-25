@@ -59,6 +59,9 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("announcement_projectid_foreign");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
         });
 
         modelBuilder.Entity<Notification>(entity =>

@@ -11,9 +11,9 @@ public partial class Announcement
 
     public string Content { get; set; } = null!;
 
-    public long CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public long UpdatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public long ProjectId { get; set; }
 
