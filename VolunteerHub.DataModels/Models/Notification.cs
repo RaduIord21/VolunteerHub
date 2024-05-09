@@ -13,4 +13,6 @@ public partial class Notification
 
     public string Subject { get; set; } = null!;
 
+    public bool IsRead { get; set; }
+
 }

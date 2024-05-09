@@ -10,7 +10,7 @@ using VolunteerHub.DataModels.Models;
 
 namespace VolunteerHub.Backend.Controllers
 {
-    [Route("api")]
+    [Route("api/[controller]")]
     [ApiController]
     public class OrganizationController : Controller
     {
@@ -42,15 +42,16 @@ namespace VolunteerHub.Backend.Controllers
             _userOrganizationRepository = userOrganizationRepository;
         }
         [HttpPost("joinOrganization")]
-        public IActionResult JoinOrganization([FromBody] JoinOrganizationDto joinOrganizationDto)
+        public IActionResult JoinOrganization([FromQuery(Name ="Code")]string code)
         {
             try
             {
-                var org = _organizationRepository.GetByCode(joinOrganizationDto.Code);
+                var org = _organizationRepository.GetByCode(code);
                 if (org == null)
                 {
                     return Ok("No organization found");
                 }
+                
                 if (User.Identity.Name == null)
                 {
                     return BadRequest("Not logged in");
@@ -149,8 +150,8 @@ namespace VolunteerHub.Backend.Controllers
             return res;
         }
 
-        [HttpPost("deleteOrganization")]
-        public IActionResult DeleteOrganization(DeleteOrganizationDto deleteOrganizationDto)
+        [HttpPost("{Id:long}/deleteOrganization")]
+        public IActionResult DeleteOrganization(long Id)
         {
             if (User.Identity == null)
             {
@@ -167,7 +168,7 @@ namespace VolunteerHub.Backend.Controllers
             {
                 return BadRequest("No user found");
             }
-            var org = _organizationRepository.GetById(deleteOrganizationDto.OrganizationID);
+            var org = _organizationRepository.GetById(Id);
             if (org == null)
             {
                 return BadRequest("No Organization");
@@ -183,8 +184,8 @@ namespace VolunteerHub.Backend.Controllers
             return Ok("Success");
         }
 
-        [HttpPost("quitOrganization")]
-        public IActionResult QuitOrganization(quitOrganizationDto quitOrganizationDto)
+        [HttpPost("{Id:long}/quitOrganization")]
+        public IActionResult QuitOrganization(long Id,quitOrganizationDto quitOrganizationDto)
         {
 
             if (User.Identity == null)
@@ -204,11 +205,16 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("No user found");
             }
 
-
-
             Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.CoordinatorRole)).Wait();
             Task.Run(() => _userManager.AddToRoleAsync(user.Result, Constants.VolunteerRole)).Wait();
-
+            
+            var userOrganization = _userOrganizationRepository.Get(uo => uo.OrganizationId == Id && uo.UserId == user.Result.Id);
+            if (userOrganization == null)
+            {
+                return BadRequest("User not in the organization");
+            }
+            _userOrganizationRepository.Delete(userOrganization[0]);
+            _userOrganizationRepository.Save();
             if (quitOrganizationDto.NewCoordinatorId == null)
             {
                 return BadRequest("No user found");
@@ -223,13 +229,15 @@ namespace VolunteerHub.Backend.Controllers
 
             Task.Run(() => _userManager.RemoveFromRoleAsync(newCoord.Result, Constants.VolunteerRole)).Wait();
             Task.Run(() => _userManager.AddToRoleAsync(newCoord.Result, Constants.CoordinatorRole)).Wait();
+
+            
             return Ok("Success");
         }
 
-        [HttpGet("organization")]
-        public IActionResult Organization(ThisOrganizationDto thisOrganizationDto)
+        [HttpGet("{Id:long}/organization")]
+        public IActionResult Organization(long Id)
         {
-            var Organization = _organizationRepository.GetById(thisOrganizationDto.Id);
+            var Organization = _organizationRepository.GetById(Id);
             if (Organization == null) {
                 return BadRequest("No Organization Found");
             }
@@ -295,20 +303,18 @@ namespace VolunteerHub.Backend.Controllers
             }
         }
 
-        [HttpPost("kick")]
-        public IActionResult kickMember(KickDto kickDto)
+        [HttpPost("{Id}/kick")]
+        public IActionResult kickMember (string Id, KickDto kickDto)
         {
-            if (kickDto.email == null)
-            {
-                return BadRequest("No email from view component !");
-            }
-            var user = _userManager.FindByEmailAsync(kickDto.email);
+           
+            var user = _userManager.FindByIdAsync(Id);
             if (user.Result == null)
             {
                 return BadRequest("User Not vound");
             }
-            _context.Users.Update(user.Result);
-            _context.SaveChanges();
+            var userOrganizations  = _userOrganizationRepository.Get(uo => uo.UserId == Id && uo.OrganizationId == kickDto.Id);
+            _userOrganizationRepository.Delete(userOrganizations[0]);
+            _userOrganizationRepository.Save();
             return Ok("Successfully kicked player");
         }
     }

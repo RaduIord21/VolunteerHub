@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using VolunteerHub.Backend.Models;
+using VolunteerHub.Backend.Services.Interfaces;
 using VolunteerHub.DataAccessLayer.Interfaces;
 using VolunteerHub.DataModels.Models;
 
@@ -12,10 +14,23 @@ namespace VolunteerHub.Backend.Controllers
     public class AnnouncementsController : ControllerBase
     {
         private readonly IAnnouncementRepository _announcementRepository;
+        private readonly IEmailService _emailService;
+        private readonly ITaskRepository _taskRepository;
+        private readonly IUserTaskRepository _userTaskRepository;
+        private readonly UserManager<User> _userManager;
 
-        public AnnouncementsController(IAnnouncementRepository announcementRepository)
+        public AnnouncementsController(IAnnouncementRepository announcementRepository,
+            IEmailService emailService,
+            ITaskRepository taskRepository,
+            IUserTaskRepository userTaskRepository,
+            UserManager<User> userManager
+            )
         {
             _announcementRepository = announcementRepository;
+            _emailService = emailService;
+            _taskRepository = taskRepository;
+            _userTaskRepository = userTaskRepository;
+            _userManager = userManager;
         }
 
         [HttpPost("createAnnouncement")]
@@ -29,32 +44,54 @@ namespace VolunteerHub.Backend.Controllers
             announcement.Content = announcementDto.Content;
             _announcementRepository.Add(announcement);
             _announcementRepository.Save();
+            var tasks = _taskRepository.Get(t => t.ProjectId == announcement.ProjectId);
+            var userEmails = new List<string>();
+            foreach ( var task in tasks)
+            {
+                var users = _userTaskRepository.Get(ut => ut.TaskId == task.Id);
+                if(users.Count == 0)
+                {
+                    return BadRequest("No users found for this task");
+                }
+                foreach ( var user in users)
+                {
+                    if( user.UserId == null)
+                    {
+                        continue;
+                    }
+                    var u = _userManager.FindByIdAsync(user.UserId);
+                    if(u.Result == null)
+                    {
+                        continue;
+                    }
+                    if (u.Result.Email == null)
+                    {
+                        continue;
+                    }
+                    userEmails.Add(u.Result.Email);
+                }
+                foreach( var userEmail in userEmails.Distinct())
+                {
+                    Task.Run(() => _emailService.SendEmailAsync(userEmail, announcement.Title, announcement.Content).Wait());
+                }
+             }
             return Ok("Success");
         }
 
-        [HttpGet("announcement/{projectId}")]
-        public IActionResult GetAnnouncement([FromRoute(Name ="projectId")] string projectId) {
+        [HttpGet("{Id}/announcements")]
+        public IActionResult GetAnnouncement(long Id) {
 
             IList<Announcement> announcement ;
-            if (long.TryParse(projectId, out long Id))
-            {
-                announcement = _announcementRepository.Get(a => a.ProjectId == Id);
-                if (announcement == null)
-                {
-                    return BadRequest("Announcements not found");
-                }
-            }
-            else
-            {
-                return BadRequest("conversion impossible");
-            }
+            
+            announcement = _announcementRepository.Get(a => a.ProjectId == Id);
+                
             return Ok(announcement);
         }
 
-        [HttpPost("deleteAnnouncement")]
-        public IActionResult deleteAnnouncement(AnnouncementDto announcementDto)
+        [HttpPost("{Id:long}/deleteAnnouncement")]
+        public IActionResult deleteAnnouncement( long Id)
         {
-            var announcement = _announcementRepository.GetById(announcementDto.Id);
+            var announcement = _announcementRepository.GetById(Id);
             if(announcement == null)
             {
                 return BadRequest("No announcement found !");

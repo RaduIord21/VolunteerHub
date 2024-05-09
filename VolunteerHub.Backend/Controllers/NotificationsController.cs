@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using VolunteerHub.Backend.Models;
 using VolunteerHub.Backend.Services.Interfaces;
 using VolunteerHub.DataAccessLayer.Interfaces;
@@ -12,10 +13,53 @@ namespace VolunteerHub.Backend.Controllers
     {
         private readonly IEmailService _emailService;
         private readonly INotificationRepository _notificationRepository;
-        public NotificationsController(IEmailService emailSerive, INotificationRepository notificationRepository)
+        private readonly UserManager<User> _userManager;
+        public NotificationsController(
+            IEmailService emailSerive,
+            INotificationRepository notificationRepository,
+            UserManager<User> userManager
+            )
         {
             _emailService = emailSerive;
             _notificationRepository = notificationRepository;
+            _userManager = userManager;
+        }
+
+        [HttpGet("Notifications")]
+        public IActionResult Notifications() {
+
+            if(User.Identity == null) {
+                return BadRequest("Not logged in");
+            }
+            var username = User.Identity.Name;
+            if(username == null )
+            {
+                return BadRequest("No username found");
+            }
+            var user = _userManager.FindByNameAsync(username);
+            if(user.Result == null)
+            {
+                return BadRequest("No user found");
+            }
+            var notifications = _notificationRepository.Get(n => n.Email == user.Result.Email);
+            
+            return Ok(notifications);
+        }
+
+        [HttpPost("{Id:long}/readNotification")]
+        public IActionResult readNotification(long Id)
+        {
+            var notification = _notificationRepository.GetById(Id);
+            if (notification == null)
+            {
+                return BadRequest("Notification not found");
+            }
+            notification.IsRead = true;
+            _notificationRepository.Update(notification);
+            _notificationRepository.Save();
+            return Ok("Success");
+            
+
         }
 
         [HttpPost("sendNotification")]

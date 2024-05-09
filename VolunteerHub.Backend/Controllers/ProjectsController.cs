@@ -12,7 +12,7 @@ using VolunteerHub.DataModels.Models;
 namespace VolunteerHub.Backend.Controllers
 {
     [ApiController]
-    [Route("api")]
+    [Route("api/[controller]")]
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectRepository _projectRepository;
@@ -40,19 +40,12 @@ namespace VolunteerHub.Backend.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("getProject/{projectId}")]
-        public IActionResult GetProject([FromRoute(Name = "projectId")]string DtoId)
+        [HttpGet("{Id:long}/getProject")]
+        public IActionResult GetProject(long Id)
         {
-            long Id;
-            Project? project;
-                if (long.TryParse(DtoId, out Id))
-            {
-                project = _projectRepository.GetById(Id);
-            }
-            else
-            {
-                return BadRequest("conversion impossible");
-            }
+           
+            var project = _projectRepository.GetById(Id);
+            
             if (project == null)
             {
                 return BadRequest();
@@ -60,22 +53,12 @@ namespace VolunteerHub.Backend.Controllers
             return Ok(project);
         }
         [AllowAnonymous]
-        [HttpGet("projects/{organizationId}")]
-        public IActionResult Projects([FromRoute(Name = "organizationId")] string OrganizationId)
+        [HttpGet("{Id:long}/projects")]
+        public IActionResult Projects(long Id)
         {
             try
             {
-                Organization? organization;
-                if (long.TryParse(OrganizationId, out long Id))
-                {
-                    organization = _organizationRepository.GetById(Id);
-                }
-                else
-                {
-                    return BadRequest("conversion impossible");
-                }
-
-
+                var organization = _organizationRepository.GetById(Id);  
                 if (organization == null)
                 {
                     return BadRequest("Organization not found");
@@ -104,12 +87,12 @@ namespace VolunteerHub.Backend.Controllers
                 var userName = User.Identity.Name;
                 if (userName == null)
                 {
-                    return Ok("Identitate negasita");
+                    return Ok("Identity not found");
                 }
                 var user = _userManager.FindByNameAsync(userName);
                 if (user.Result == null)
                 {
-                    return Ok("User negasit in baza de date");
+                    return Ok("User not found");
                 }
                 
 
@@ -149,8 +132,8 @@ namespace VolunteerHub.Backend.Controllers
             }
         }
         [Authorize(Roles ="Coordinator,Admin")]
-        [HttpPost("changeProjectName")]
-        public IActionResult changeProjectName([FromBody] ChangeProjectNameDto changeProjectNameDto)
+        [HttpPost("{Id:long}/changeProjectName")]
+        public IActionResult changeProjectName(long Id, [FromBody] ChangeProjectNameDto changeProjectNameDto)
         {
             try
             {
@@ -158,14 +141,14 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return BadRequest("No data recieved");
                 }
-                var project = _projectRepository.GetById(changeProjectNameDto.Id);
+                var project = _projectRepository.GetById(Id);
                 if (project == null)
                 {
                     return BadRequest("No project found");
                 }   
                 if(changeProjectNameDto.Name.IsNullOrEmpty())
                 {
-                    return BadRequest("Data is empty");
+                    return BadRequest("Data is missing");
                 }
                 project.ProjectName = changeProjectNameDto.Name;
                 _projectRepository.Update(project);
@@ -180,15 +163,15 @@ namespace VolunteerHub.Backend.Controllers
 
        
 
-        [HttpPost("changeDescription")]
-        public IActionResult ChangeDescription([FromBody]ChangeDescriptionDto changeDescriptionDto)
+        [HttpPost("{Id:long}/changeDescription")]
+        public IActionResult ChangeDescription(long Id,[FromBody]ChangeDescriptionDto changeDescriptionDto)
         
         {
             if (changeDescriptionDto == null)
             {
                 return BadRequest("Server got null");
             }
-            var project = _projectRepository.GetById(changeDescriptionDto.Id);
+            var project = _projectRepository.GetById(Id);
             if (project == null)
             {
                 return BadRequest("No project found");
@@ -205,8 +188,8 @@ namespace VolunteerHub.Backend.Controllers
         }
 
 
-        [HttpPost("addMembers")]    
-        public IActionResult AddMembers([FromBody]ProjectUserDto projectUsers) 
+        [HttpPost("{Id:long}/addMembers")]
+        public IActionResult AddMembers(long Id,[FromBody]ProjectUserDto projectUsers) 
         {
             if (projectUsers.UserIds == null)
             {
@@ -219,24 +202,29 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     continue;
                 }
-                u.Result.ProjectId = projectUsers.ProjectId;
+                u.Result.ProjectId = Id;
                 var _ = _userManager.UpdateAsync(u.Result).Result;
             }
             return Ok("Success");
         }
 
-       [HttpPost("deleteProject")]
-        public IActionResult deleteProject(DeleteProjectDto deleteProjectDto)
+       [HttpPost("{Id:long}/deleteProject")]
+        public IActionResult deleteProject(long Id)
         {
-            var project = _projectRepository.GetById(deleteProjectDto.Id);
+            var project = _projectRepository.GetById(Id);
             if (project == null)
             {
                 return BadRequest("Project Not found");
             }
             _projectRepository.Delete(project);
-            _projectStatsRepository.Delete(_projectStatsRepository.GetByProjectId(project.Id));
-            _projectStatsRepository.Save();
             _projectRepository.Save();
+            var stats = _projectStatsRepository.GetByProjectId(project.Id);
+            if(stats == null)
+            {
+                return BadRequest("Stats not found for this project");
+            }
+            _projectStatsRepository.Delete(stats);
+            _projectStatsRepository.Save();
             return Ok("Success");
         }
 

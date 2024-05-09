@@ -7,7 +7,7 @@ using VolunteerHub.DataModels.Models;
 
 namespace VolunteerHub.Backend.Controllers
 {
-    [Route("api")]
+    [Route("api/[controller]")]
     [ApiController]
     public class UserStatsController : ControllerBase
     {
@@ -22,7 +22,7 @@ namespace VolunteerHub.Backend.Controllers
             _userStatsRepository = userStatsRepository;
         }
 
-        [HttpGet("UserStats/{userId}")]
+        [HttpGet("{userId}/UserStats")]
         public IActionResult GetUserStats([FromRoute(Name = "userId")] string? uid)
         {
             if (uid == null)

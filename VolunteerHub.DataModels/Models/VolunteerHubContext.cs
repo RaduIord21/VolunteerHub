@@ -79,6 +79,7 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.Subject).HasMaxLength(255);
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
         });
 
         modelBuilder.Entity<Organization>(entity =>

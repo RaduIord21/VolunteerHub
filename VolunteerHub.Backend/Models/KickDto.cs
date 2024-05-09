@@ -2,6 +2,6 @@
 {
     public class KickDto
     {
-        public string? email {  get; set; }
+        public long Id {  get; set; }
     }
 }

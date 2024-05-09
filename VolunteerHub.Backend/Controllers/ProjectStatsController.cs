@@ -16,23 +16,10 @@ namespace VolunteerHub.Backend.Controllers
             _projectStatsRepository = projectStatsRepository;
         }
 
-        [HttpGet("ProjectStats/{projectId}")]
-        public IActionResult GetStats([FromRoute(Name = "projectId")] string DtoId)
+        [HttpGet("{Id:long}/ProjectStats")]
+        public IActionResult GetStats([FromRoute(Name = "projectId")] long Id)
         {
-            ProjectStat? stats;
-            if (long.TryParse(DtoId, out long Id))
-            {
-                stats = _projectStatsRepository.GetByProjectId(Id);
-                if (stats == null)
-                {
-                    return BadRequest("Stats not Found");
-                }
-            }
-            else
-            {
-                return BadRequest("conversion impossible");
-            }
-
+            var stats = _projectStatsRepository.GetByProjectId(Id);
             return Ok(stats);
         }
     }
