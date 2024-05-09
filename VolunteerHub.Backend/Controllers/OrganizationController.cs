@@ -19,7 +19,8 @@ namespace VolunteerHub.Backend.Controllers
         private readonly UserManager<User> _userManager;
         private readonly IMapper _mapper;
         private readonly VolunteerHubContext _context;
-        private readonly IUserRepository _userRepository;
+        private readonly IProjectRepository _projectRepository;
+        private readonly IUserOrganizationRepository _userOrganizationRepository;
 
         public OrganizationController(
 
@@ -28,7 +29,8 @@ namespace VolunteerHub.Backend.Controllers
             UserManager<User> userManager,
             IMapper mapper,
             VolunteerHubContext context,
-            IUserRepository userRepository
+            IProjectRepository projectRepository,
+            IUserOrganizationRepository userOrganizationRepository
             )
         {
             _jwtService = jwtService;
@@ -36,26 +38,35 @@ namespace VolunteerHub.Backend.Controllers
             _userManager = userManager;
             _mapper = mapper;
             _context = context;
-            _userRepository = userRepository;
+            _projectRepository = projectRepository;
+            _userOrganizationRepository = userOrganizationRepository;
         }
         [HttpPost("joinOrganization")]
         public IActionResult JoinOrganization([FromBody] JoinOrganizationDto joinOrganizationDto)
         {
             try
             {
-                var org = _organizationRepository.Get(o => o.Code == joinOrganizationDto.Code)[0];
+                var org = _organizationRepository.GetByCode(joinOrganizationDto.Code);
                 if (org == null)
                 {
                     return Ok("No organization found");
                 }
-                if (User.Identity.Name == null) {
+                if (User.Identity.Name == null)
+                {
                     return BadRequest("Not logged in");
                 }
-                var user = _userManager.FindByNameAsync(User.Identity.Name).Result;
-                user.OrganizationId = org.Id;
-                user.Organization = org;
-                _context.Users.Update(user);
-                _context.SaveChanges();
+                var user = _userManager.FindByNameAsync(User.Identity.Name);
+                if (user.Result == null)
+                {
+                    return BadRequest("No user found");
+                }
+                UserOrganization uo = new()
+                {
+                    UserId = user.Result.Id,
+                    OrganizationId = org.Id,
+                };
+                _userOrganizationRepository.Add(uo);
+                _userOrganizationRepository.Save();
                 var rez = new
                 {
                     organizationName = org.Name,
@@ -67,7 +78,7 @@ namespace VolunteerHub.Backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest("crapa");
+                return BadRequest(ex.Message);
             }
         }
 
@@ -77,7 +88,8 @@ namespace VolunteerHub.Backend.Controllers
             try
             {
 
-                if (User.Identity == null) { 
+                if (User.Identity == null)
+                {
                     return BadRequest("missing Identity");
                 }
                 var userName = User.Identity.Name;
@@ -90,30 +102,33 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return Ok("User negasit in baza de date");
                 }
-                if (user.Result.OrganizationId != null)
-                {
-                    return BadRequest("Deja exista organizatie");
-                }
+
                 string code = generateCode();
                 organizationDto.Code = code;
-                _organizationRepository.Add(_mapper.Map<Organization>(organizationDto));
+                Organization org = new()
+                {
+                    Name = organizationDto.Name,
+                    Contact = organizationDto.Contact,
+                    Adress = organizationDto.Adress,
+                    Code = code,
+                    CreatedAt = organizationDto.CreatedAt,
+                    UpdatedAt = organizationDto.UpdatedAt,
+                    OwnerId = user.Result.Id
+                };
+                _organizationRepository.Add(org);
                 _organizationRepository.Save();
                 Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.VolunteerRole)).Wait();
                 Task.Run(() => _userManager.AddToRoleAsync(user.Result, Constants.CoordinatorRole)).Wait();
-                var Organizations = _organizationRepository.Get(o => o.Name == organizationDto.Name);
-                if (Organizations == null)
+
+                
+                var UserOrg = new UserOrganization()
                 {
-                    return Ok("Nu s-a gasit organizatie");
-                }
-                foreach (var org in Organizations)
-                {
-                    user.Result.Organization = org;
-                    user.Result.OrganizationId = org.Id;
-                    _context.Users.Update(user.Result);
-                    _context.SaveChanges();
-                    return Ok("Succes");
-                }
-                return Ok("Succes");
+                    OrganizationId = org.Id,
+                    UserId = user.Result.Id,
+                };
+                _userOrganizationRepository.Add(UserOrg);
+                _userOrganizationRepository.Save();
+                return Ok("Success");
             }
             catch (Exception ex)
             {
@@ -134,47 +149,113 @@ namespace VolunteerHub.Backend.Controllers
             return res;
         }
 
-        [HttpPost("quitOrganization")]
-        public IActionResult quitOrganization(quitOrganizationDto quitOrganizationDto)
+        [HttpPost("deleteOrganization")]
+        public IActionResult DeleteOrganization(DeleteOrganizationDto deleteOrganizationDto)
         {
-            string? response = quitOrganizationDto.User;
-            if (string.IsNullOrEmpty(response))
-            { 
-                return BadRequest("No user");
+            if (User.Identity == null)
+            {
+                return BadRequest("No user found");
             }
-            var user = _userManager.FindByNameAsync(response);
+
+            if (User.Identity.Name == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            var user = _userManager.FindByNameAsync(User.Identity.Name);
             if (user.Result == null)
             {
-                return BadRequest("User not Found");
+                return BadRequest("No user found");
             }
-                      if (user.Result.OrganizationId == null)
+            var org = _organizationRepository.GetById(deleteOrganizationDto.OrganizationID);
+            if (org == null)
             {
-                return BadRequest("Backend : Nu e organizatie");
+                return BadRequest("No Organization");
             }
-            if (_userManager.IsInRoleAsync(user.Result, Constants.CoordinatorRole).Result)
+            var orgs = _organizationRepository.Get(o => o.OwnerId == user.Result.Id);
+            if (orgs.Count == 0)
             {
-                var org = _organizationRepository.GetById(user.Result.OrganizationId);
-                if (org == null)
-                {
-                    return BadRequest("No organization ");
-                }
-                _organizationRepository.Delete(org);
-                _organizationRepository.Save();
-                Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.CoordinatorRole));
-                Task.Run(() => _userManager.AddToRoleAsync(user.Result, Constants.VolunteerRole));
+                Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.CoordinatorRole)).Wait();
+                Task.Run(() => _userManager.AddToRoleAsync(user.Result, Constants.VolunteerRole)).Wait();
             }
-            else
-            {
-                user.Result.OrganizationId = null;
-                user.Result.Organization = null;
-                _context.Users.Update(user.Result);
-                _context.SaveChanges();
-            }
-            return Ok("Succcesfully Removed");
+            _organizationRepository.Delete(org);
+            _organizationRepository.Save();
+            return Ok("Success");
         }
-        
-        [AllowAnonymous]
+
+        [HttpPost("quitOrganization")]
+        public IActionResult QuitOrganization(quitOrganizationDto quitOrganizationDto)
+        {
+
+            if (User.Identity == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            if (User.Identity.Name == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            var user = _userManager.FindByNameAsync(User.Identity.Name);
+
+            if (user.Result == null)
+            {
+                return BadRequest("No user found");
+            }
+
+
+
+            Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.CoordinatorRole)).Wait();
+            Task.Run(() => _userManager.AddToRoleAsync(user.Result, Constants.VolunteerRole)).Wait();
+
+            if (quitOrganizationDto.NewCoordinatorId == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            var newCoord = _userManager.FindByIdAsync(quitOrganizationDto.NewCoordinatorId);
+
+            if (newCoord.Result == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            Task.Run(() => _userManager.RemoveFromRoleAsync(newCoord.Result, Constants.VolunteerRole)).Wait();
+            Task.Run(() => _userManager.AddToRoleAsync(newCoord.Result, Constants.CoordinatorRole)).Wait();
+            return Ok("Success");
+        }
+
         [HttpGet("organization")]
+        public IActionResult Organization(ThisOrganizationDto thisOrganizationDto)
+        {
+            var Organization = _organizationRepository.GetById(thisOrganizationDto.Id);
+            if (Organization == null) {
+                return BadRequest("No Organization Found");
+            }
+            var userOrgs = _userOrganizationRepository.Get(uo => uo.OrganizationId == Organization.Id);
+            IList<User>? Users = new List<User>();
+            foreach (var uo in userOrgs) {
+                if (uo.UserId == null)
+                {
+                    continue;
+                }
+                var u = _userManager.FindByIdAsync(uo.UserId);
+                if (u.Result == null) {
+                    continue;
+                }
+                Users.Add(u.Result);
+            }
+            var rsp = new
+            {
+                Users,
+                Organization
+            };
+            return Ok(rsp);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("organizations")]
         public IActionResult Organizations()
         {
             try
@@ -191,46 +272,26 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return Ok("No users");
                 }
-                var organization = _organizationRepository.GetById(user.Result.OrganizationId);
+                var UserOrgs = _userOrganizationRepository.Get(o => o.UserId == user.Result.Id);
+                if (UserOrgs == null)
                 {
-                    if (organization == null)
-                    {
-                        return Ok();
-                    }
-
-                    var users = _context.Users.Where(u => u.OrganizationId == organization.Id).ToList();
-                    //var users = _userRepository.Get(u => u.OrganizationId == organization.Id).ToList();
-                    var usersList = new List<object>();
-                    foreach (var u in users) 
-                    {
-                        var curr = new
-                        {
-                            u.Id,
-                            u.UserName,
-                            u.Email,
-                            _userManager.GetRolesAsync(u).Result
-                        };
-                        usersList.Add(curr);
-                    }
-                    //Console.WriteLine(users);
-                    var org = new
-                    {
-                
-                        organizationName = organization.Name,
-                        organizationContact = organization.Contact,
-                        organizationAdress = organization.Adress,
-                        organizationCode = organization.Code,
-                        currentUser = user.Result.UserName,
-                        currentEmail = user.Result.Email,
-                        currentRole = _userManager.GetRolesAsync(user.Result).Result[0],
-                        users = usersList
-                    };
-                    return Ok(org);
+                    return Ok("No organizations found for the user");
                 }
+                IList<Organization>? orgs = new List<Organization>();
+                foreach (var uo in UserOrgs)
+                {
+                    var o = _organizationRepository.GetById(uo.OrganizationId);
+                    if (o == null)
+                    {
+                        continue;
+                    }
+                    orgs.Add(o);
+                }
+                return Ok(orgs);
             }
             catch (Exception e)
             {
-                return Ok(e);   
+                return Ok(e);
             }
         }
 
@@ -242,11 +303,10 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("No email from view component !");
             }
             var user = _userManager.FindByEmailAsync(kickDto.email);
-            if (user.Result == null) {
+            if (user.Result == null)
+            {
                 return BadRequest("User Not vound");
             }
-            user.Result.Organization = null;
-            user.Result.OrganizationId = null;
             _context.Users.Update(user.Result);
             _context.SaveChanges();
             return Ok("Successfully kicked player");

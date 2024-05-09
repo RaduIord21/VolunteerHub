@@ -30,10 +30,11 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
 
     public virtual DbSet<ProjectTask> ProjectTasks { get; set; }
 
+    public virtual DbSet<UserOrganization> UserOrganizations { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
-
+    public virtual DbSet<UserTask> UserTasks { get; set; }
     public virtual DbSet<UserStat> UserStats { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -77,9 +78,6 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.Property(e => e.Email)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.Status)
-                .HasMaxLength(255)
-                .IsUnicode(false);
             entity.Property(e => e.Subject).HasMaxLength(255);
         });
 
@@ -97,9 +95,11 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             entity.Property(e => e.Code).HasColumnName("Code");
+            entity.HasOne(o => o.User).WithMany(u => u.Organizations).HasForeignKey(o => o.OwnerId);
         });
 
-        modelBuilder.Entity<Project>(entity =>
+        
+            modelBuilder.Entity<Project>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("project_id_primary");
             entity.ToTable("Project");
@@ -123,12 +123,40 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             
         });
 
+        modelBuilder.Entity<UserTask>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("UserTask_id_primary");
+            entity.ToTable("UserTask");
+            entity.Property(e => e.Id).HasColumnName("id");
+
+            entity.HasOne(e => e.Task).WithMany(p => p.UserTasks)
+                .HasForeignKey(d => d.TaskId)
+                .HasConstraintName("FK_UserTask_Task");
+
+            entity.HasOne(e => e.User).WithMany(p => p.UserTasks)
+               .HasForeignKey(d => d.UserId)
+               .HasConstraintName("FK_UserTask_User");
+        });
+
+        modelBuilder.Entity<UserOrganization>(entity => {
+            entity.HasKey(e => e.Id).HasName("UserOrganization_id_primary");
+            entity.ToTable("UserOrganization");
+            entity.Property(e => e.Id).HasColumnName("id");
+
+            entity.HasOne(e => e.Organization).WithMany(p => p.UserOrganizations)
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("FK_UserOrganization_organization");
+
+            entity.HasOne(e => e.User).WithMany(p => p.UserOrganizations)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_UserOrganization_User");
+        });
+
         modelBuilder.Entity<ProjectStat>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("projectstats_id_primary");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
@@ -154,18 +182,14 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.HasOne(d => d.Project).WithMany(p => p.ProjectTasks)
                 .HasForeignKey(d => d.ProjectId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+                .OnDelete(DeleteBehavior.ClientCascade)
                 .HasConstraintName("projecttask_projectid_foreign");
             entity.Property(e => e.Progress).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<User>(entity =>
-        {
-            entity
-            .HasOne(u => u.Organization)
-            .WithMany(o => o.Users)
-            .HasForeignKey(u => u.OrganizationId);
-            entity.HasOne(u => u.Project).WithMany(p => p.Users).HasForeignKey(u => u.ProjectId);
+        { 
+            entity.HasOne(u => u.Project).WithMany(p => p.Users).HasForeignKey(u => u.ProjectId).OnDelete(DeleteBehavior.ClientSetNull);
         });
         
 

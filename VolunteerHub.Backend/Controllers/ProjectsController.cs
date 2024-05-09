@@ -60,29 +60,25 @@ namespace VolunteerHub.Backend.Controllers
             return Ok(project);
         }
         [AllowAnonymous]
-        [HttpGet("projects")]
-        public IActionResult Projects()
+        [HttpGet("projects/{organizationId}")]
+        public IActionResult Projects([FromRoute(Name = "organizationId")] string OrganizationId)
         {
             try
             {
-                if (User.Identity == null)
+                Organization? organization;
+                if (long.TryParse(OrganizationId, out long Id))
                 {
-                    return BadRequest("Null identity");
+                    organization = _organizationRepository.GetById(Id);
                 }
-                var userName = User.Identity.Name;
-                if (userName == null)
+                else
                 {
-                    return Ok("Identitate negasita");
+                    return BadRequest("conversion impossible");
                 }
-                var user = _userManager.FindByNameAsync(userName);
-                if (user.Result == null)
-                {
-                    return Ok("No users");
-                }
-                var organization = _organizationRepository.GetById(user.Result.OrganizationId);
+
+
                 if (organization == null)
                 {
-                    return BadRequest("Organization not found for the current user");
+                    return BadRequest("Organization not found");
                 }
                 var projects = _projectRepository.Get(p => p.OrganizationId == organization.Id);
                 return Ok(projects);
@@ -97,6 +93,10 @@ namespace VolunteerHub.Backend.Controllers
         {
             try
             {
+                if(projectsDto.OrganizationId == null)
+                {
+                    return BadRequest("No organization Found");
+                }
                 if (User.Identity == null)
                 {
                     return BadRequest("Null identity");
@@ -111,16 +111,12 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return Ok("User negasit in baza de date");
                 }
-                if (user.Result.OrganizationId == null)
-                {
-                    return BadRequest("No organization found");
-                }
+                
 
                 var project = new Project
                 {
-                   
-                    Organization = user.Result.Organization,
-                    OrganizationId = (long)user.Result.OrganizationId,
+                    Organization = _organizationRepository.GetById(projectsDto.OrganizationId),
+                    OrganizationId = (long)projectsDto.OrganizationId,
                     ProjectName = projectsDto.ProjectName,
                     Description = projectsDto.Description,
                     EndDate = projectsDto.EndDate,
@@ -128,14 +124,11 @@ namespace VolunteerHub.Backend.Controllers
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
-                /*IList<Project> verifyOrg = _projectRepository.Get(p => p.ProjectName == project.ProjectName);
-                if (verifyOrg.Count != 0)
-                {
-                    return BadRequest("An organization with this name already exists");
-                }*/
                 _projectRepository.Add(project);
                 _projectRepository.Save();
 
+                user.Result.ProjectId = project.Id;
+                _ = _userManager.UpdateAsync(user.Result);
                 var projectStat = new ProjectStat { 
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -146,6 +139,8 @@ namespace VolunteerHub.Backend.Controllers
                 };
                 _projectStatsRepository.Add(projectStat);
                 _projectStatsRepository.Save();
+                
+
                 return Ok("Success");
             }
             catch (Exception e)

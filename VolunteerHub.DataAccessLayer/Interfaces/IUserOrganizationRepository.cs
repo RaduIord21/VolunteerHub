@@ -7,8 +7,7 @@ using VolunteerHub.DataModels.Models;
 
 namespace VolunteerHub.DataAccessLayer.Interfaces
 {
-    public interface IOrganizationRepository : IGenericRepository<Organization>
+    public interface IUserOrganizationRepository : IGenericRepository<UserOrganization>
     {
-        Organization? GetByCode(string? code);
     }
 }

@@ -13,6 +13,5 @@
 
         public bool IsTime { get; set; }
 
-        public bool NeedsValidation { get; set; }
     }
 }

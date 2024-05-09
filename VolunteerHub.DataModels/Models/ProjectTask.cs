@@ -7,17 +7,10 @@ namespace VolunteerHub.DataModels.Models;
 public partial class ProjectTask
 {
     public long Id { get; set; }
-
     public long ProjectId { get; set; }
-
-    public string? AssigneeId { get; set; }
-
     public string Status { get; set; } = null!;
-
     public decimal Progress { get; set; }
-
     public DateTime StartDate { get; set; }
-
     public DateTime? EndDate { get; set; }
 
     public string Description { get; set; }
@@ -30,9 +23,9 @@ public partial class ProjectTask
 
     public bool IsTime { get; set; }
 
-    public bool NeedsValidation { get; set; }
-
     public string Name { get; set; } = null!;
 
     public virtual Project Project { get; set; } = null!;
+    public virtual ICollection<UserTask> UserTasks { get; set; } = new List<UserTask>();
+
 }

@@ -14,5 +14,14 @@ namespace VolunteerHub.DataAccessLayer.Repositories
         public OrganizationRepository(VolunteerHubContext context) : base(context)
         {
         }
+
+        public Organization? GetByCode(string? code)
+        {
+            if (code == null)
+            {
+                return null;
+            }
+            return context.Organizations.FirstOrDefault(x => x.Code.Equals(code));
+        }
     }
 }

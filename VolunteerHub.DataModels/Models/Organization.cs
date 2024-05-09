@@ -23,12 +23,14 @@ public partial class Organization
 
     public string Code { get; set; } = null!;   
 
+    public string? OwnerId { get; set; }
+
 
     [DatabaseGeneratedAttribute(DatabaseGeneratedOption.Identity)]
     public long Id { get; set; }
-    public virtual ICollection<User>? Users { get; set; }
     public virtual ICollection<Project>? Projects { get; set; }
 
+    public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
 
-
+    public User? User { get; set; }
 }

@@ -2,6 +2,7 @@
 {
     public class quitOrganizationDto
     {
-        public string? User {  get; set; }
+
+        public string? NewCoordinatorId { get;  set; }
     }
 }

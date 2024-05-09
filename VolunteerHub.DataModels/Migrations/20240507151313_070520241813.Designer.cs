@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VolunteerHub.DataModels.Models;
 
@@ -11,9 +12,11 @@ using VolunteerHub.DataModels.Models;
 namespace VolunteerHub.DataModels.Migrations
 {
     [DbContext(typeof(VolunteerHubContext))]
-    partial class VolunteerHubContextModelSnapshot : ModelSnapshot
+    [Migration("20240507151313_070520241813")]
+    partial class _070520241813
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -357,6 +360,9 @@ namespace VolunteerHub.DataModels.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("AssigneeId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -396,10 +402,15 @@ namespace VolunteerHub.DataModels.Migrations
                     b.Property<long?>("SuccessTreshold")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id")
                         .HasName("projecttask_id_primary");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("ProjectTask", (string)null);
                 });
@@ -658,6 +669,10 @@ namespace VolunteerHub.DataModels.Migrations
                         .IsRequired()
                         .HasConstraintName("projecttask_projectid_foreign");
 
+                    b.HasOne("VolunteerHub.DataModels.Models.User", null)
+                        .WithMany("ProjectTasks")
+                        .HasForeignKey("UserId");
+
                     b.Navigation("Project");
                 });
 
@@ -741,6 +756,8 @@ namespace VolunteerHub.DataModels.Migrations
             modelBuilder.Entity("VolunteerHub.DataModels.Models.User", b =>
                 {
                     b.Navigation("Organizations");
+
+                    b.Navigation("ProjectTasks");
 
                     b.Navigation("Projects");
 

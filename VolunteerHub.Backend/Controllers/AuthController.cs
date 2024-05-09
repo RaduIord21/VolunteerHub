@@ -78,6 +78,17 @@ namespace VolunteerHub.Backend.Controllers
                     return BadRequest("Nu s-a adaugat rolul");
                 }
             }
+            if(myUser.Result == null)
+            {
+                return BadRequest("Register user not found");
+            }
+
+            UserStat stats = new()
+            {
+                TasksCompleted = 0,
+                TasksAsigned = 0,
+                UserId = myUser.Result.Id
+            };
             Console.WriteLine("S-a salvat ce a fost trimis din backend");
             return Ok("Success");
         }

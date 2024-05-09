@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authorization;
 using VolunteerHub.Backend.Data;
 using System.Text.Json.Serialization;
+using VolunteerHub.Backend.Services.Interfaces;
+using VolunteerHub.Backend.Services.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,8 +49,11 @@ builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectStatsRepository, ProjectStatsRepository>();
 builder.Services.AddScoped<IUserStatsRepository, UserStatsRepository>();
 builder.Services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IUserTaskRepository, UserTaskRepository>();
+builder.Services.AddScoped<IUserOrganizationRepository, UserOrganizationRepository>();
 
-
+builder.Services.AddTransient<IEmailService, EmailService>();   
 builder.Services.AddCors(
     options =>
     {
