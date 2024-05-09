@@ -112,8 +112,8 @@ namespace VolunteerHub.Backend.Controllers
                     Contact = organizationDto.Contact,
                     Adress = organizationDto.Adress,
                     Code = code,
-                    CreatedAt = organizationDto.CreatedAt,
-                    UpdatedAt = organizationDto.UpdatedAt,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
                     OwnerId = user.Result.Id
                 };
                 _organizationRepository.Add(org);
@@ -303,16 +303,16 @@ namespace VolunteerHub.Backend.Controllers
             }
         }
 
-        [HttpPost("{Id}/kick")]
-        public IActionResult kickMember (string Id, KickDto kickDto)
+        [HttpPost("{UserId}/kick")]
+        public IActionResult kickMember (string UserId, KickDto kickDto)
         {
            
-            var user = _userManager.FindByIdAsync(Id);
+            var user = _userManager.FindByIdAsync(UserId);
             if (user.Result == null)
             {
                 return BadRequest("User Not vound");
             }
-            var userOrganizations  = _userOrganizationRepository.Get(uo => uo.UserId == Id && uo.OrganizationId == kickDto.Id);
+            var userOrganizations  = _userOrganizationRepository.Get(uo => uo.UserId == UserId && uo.OrganizationId == kickDto.OrganizationId);
             _userOrganizationRepository.Delete(userOrganizations[0]);
             _userOrganizationRepository.Save();
             return Ok("Successfully kicked player");

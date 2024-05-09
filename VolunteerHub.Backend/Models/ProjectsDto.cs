@@ -9,6 +9,5 @@ namespace VolunteerHub.Backend.Models
         public string Description { get; set; } = null!;
         public DateTime? EndDate { get; set; }
 
-        public long? OrganizationId { get; set; }
     }
 }

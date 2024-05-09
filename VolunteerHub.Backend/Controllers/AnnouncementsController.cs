@@ -33,14 +33,14 @@ namespace VolunteerHub.Backend.Controllers
             _userManager = userManager;
         }
 
-        [HttpPost("createAnnouncement")]
-        public IActionResult CreateAnnouncement(AnnouncementDto announcementDto)
+        [HttpPost("{projectId:long}/createAnnouncement")]
+        public IActionResult CreateAnnouncement(long projectId, AnnouncementDto announcementDto)
         {
             var announcement = new Announcement();
             announcement.CreatedAt = DateTime.Now;
             announcement.UpdatedAt = DateTime.Now;
             announcement.Title = announcementDto.Title;
-            announcement.ProjectId = announcementDto.ProjectId;
+            announcement.ProjectId = projectId;
             announcement.Content = announcementDto.Content;
             _announcementRepository.Add(announcement);
             _announcementRepository.Save();

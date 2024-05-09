@@ -92,11 +92,11 @@ namespace VolunteerHub.Backend.Controllers
             return Ok(users);
         }
 
-        [HttpGet("{projectId}/tasks")]
-        public IActionResult Tasks(long Id)
+        [HttpGet("{projectId:long}/tasks")]
+        public IActionResult Tasks(long projectId)
         {
 
-            var project = _projectRepository.GetById(Id);
+            var project = _projectRepository.GetById(projectId);
             if (project == null)
             {
                 return BadRequest("No project found");
@@ -192,7 +192,7 @@ namespace VolunteerHub.Backend.Controllers
             return Ok(task);
         }
 
-        [HttpPost("{Id:long}editTask")]
+        [HttpPost("{Id:long}/editTask")]
         public IActionResult EditTask(long Id, [FromBody] EditTasksDto editTaskDto)
         {
             try
@@ -298,8 +298,8 @@ namespace VolunteerHub.Backend.Controllers
         }
 
 
-        [HttpPost("createTask")]
-        public IActionResult CreateTask([FromBody]ProjectTasksDto ProjectTaskDto)
+        [HttpPost("{projectId:long}/createTask")]
+        public IActionResult CreateTask(long projectId,[FromBody]ProjectTasksDto ProjectTaskDto)
         {
             try
             {
@@ -309,7 +309,7 @@ namespace VolunteerHub.Backend.Controllers
                 }                
                 var Task = new ProjectTask
                 {
-                    ProjectId = (long)ProjectTaskDto.ProjectId,
+                    ProjectId = projectId,
                     Name = ProjectTaskDto.Name,
                     Action = ProjectTaskDto.Action,
                     Description = ProjectTaskDto.Description,

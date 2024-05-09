@@ -53,12 +53,12 @@ namespace VolunteerHub.Backend.Controllers
             return Ok(project);
         }
         [AllowAnonymous]
-        [HttpGet("{Id:long}/projects")]
-        public IActionResult Projects(long Id)
+        [HttpGet("{organizationId:long}/projects")]
+        public IActionResult Projects(long organizationId)
         {
             try
             {
-                var organization = _organizationRepository.GetById(Id);  
+                var organization = _organizationRepository.GetById(organizationId);  
                 if (organization == null)
                 {
                     return BadRequest("Organization not found");
@@ -71,14 +71,15 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("Backend Error " + e.Message);
             }
         }
-        [HttpPost("createProject")]
-        public IActionResult createProject(ProjectsDto projectsDto)
+        [HttpPost("{organizationId:long}/createProject")]
+        public IActionResult createProject(long organizationId, ProjectsDto projectsDto)
         {
             try
             {
-                if(projectsDto.OrganizationId == null)
+                var org = _organizationRepository.GetById(organizationId);
+                if(org == null)
                 {
-                    return BadRequest("No organization Found");
+                    return BadRequest("No organization found");
                 }
                 if (User.Identity == null)
                 {
@@ -98,8 +99,8 @@ namespace VolunteerHub.Backend.Controllers
 
                 var project = new Project
                 {
-                    Organization = _organizationRepository.GetById(projectsDto.OrganizationId),
-                    OrganizationId = (long)projectsDto.OrganizationId,
+                    Organization = org,
+                    OrganizationId = org.Id,
                     ProjectName = projectsDto.ProjectName,
                     Description = projectsDto.Description,
                     EndDate = projectsDto.EndDate,

@@ -2,6 +2,6 @@
 {
     public class KickDto
     {
-        public long Id {  get; set; }
+        public long OrganizationId {  get; set; }
     }
 }
