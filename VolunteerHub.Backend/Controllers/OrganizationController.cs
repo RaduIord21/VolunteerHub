@@ -41,6 +41,7 @@ namespace VolunteerHub.Backend.Controllers
             _projectRepository = projectRepository;
             _userOrganizationRepository = userOrganizationRepository;
         }
+        [AllowAnonymous]    
         [HttpPost("joinOrganization")]
         public IActionResult JoinOrganization([FromQuery(Name ="Code")]string code)
         {
@@ -82,7 +83,7 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
+        [AllowAnonymous]
         [HttpPost("createOrganization")]
         public IActionResult CreateOrganization([FromBody] OrganizationDto organizationDto)
         {
@@ -150,6 +151,9 @@ namespace VolunteerHub.Backend.Controllers
             return res;
         }
 
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Coordinator")]
+
         [HttpPost("{Id:long}/deleteOrganization")]
         public IActionResult DeleteOrganization(long Id)
         {
@@ -173,7 +177,19 @@ namespace VolunteerHub.Backend.Controllers
             {
                 return BadRequest("No Organization");
             }
+
+            //verificarea pentru admin
+
+            var isAdmin = _userManager.IsInRoleAsync(user.Result, Constants.AdministratorRole);
+
+            if(isAdmin.Result)
+            {
+                _organizationRepository.Delete(org);
+                _organizationRepository.Save();
+            }
             var orgs = _organizationRepository.Get(o => o.OwnerId == user.Result.Id);
+
+
             if (orgs.Count == 0)
             {
                 Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.CoordinatorRole)).Wait();
@@ -302,9 +318,10 @@ namespace VolunteerHub.Backend.Controllers
                 return Ok(e);
             }
         }
-
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Coordinator")]
         [HttpPost("{UserId}/kick")]
-        public IActionResult kickMember (string UserId, KickDto kickDto)
+        public IActionResult KickMember(string UserId, KickDto kickDto)
         {
            
             var user = _userManager.FindByIdAsync(UserId);
@@ -312,6 +329,34 @@ namespace VolunteerHub.Backend.Controllers
             {
                 return BadRequest("User Not vound");
             }
+            var organization = _organizationRepository.GetById(kickDto.OrganizationId);
+            if (organization == null)
+            {
+                return BadRequest("No organization found");
+            }
+
+            if (User.Identity == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            if (User.Identity.Name == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            var loggedUser = _userManager.FindByNameAsync(User.Identity.Name);
+
+            if (loggedUser.Result == null)
+            {
+                return BadRequest("No user found");
+            }
+
+            if (organization.OwnerId != loggedUser.Result.Id)
+            {
+                return Forbid("Not an owner of this organization");
+            }
+
             var userOrganizations  = _userOrganizationRepository.Get(uo => uo.UserId == UserId && uo.OrganizationId == kickDto.OrganizationId);
             _userOrganizationRepository.Delete(userOrganizations[0]);
             _userOrganizationRepository.Save();

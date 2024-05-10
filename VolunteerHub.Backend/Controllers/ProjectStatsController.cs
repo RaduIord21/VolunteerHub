@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VolunteerHub.DataAccessLayer.Interfaces;
 using VolunteerHub.DataModels.Models;
@@ -16,6 +17,7 @@ namespace VolunteerHub.Backend.Controllers
             _projectStatsRepository = projectStatsRepository;
         }
 
+        [Authorize]
         [HttpGet("{Id:long}/ProjectStats")]
         public IActionResult GetStats(long Id)
         {

@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using VolunteerHub.Backend.Helpers;
 using VolunteerHub.Backend.Models;
 using VolunteerHub.Backend.Services.Interfaces;
 using VolunteerHub.DataAccessLayer.Interfaces;
@@ -15,27 +18,80 @@ namespace VolunteerHub.Backend.Controllers
     {
         private readonly IAnnouncementRepository _announcementRepository;
         private readonly IEmailService _emailService;
+        private readonly JwtService _jwtService;
+        private readonly IOrganizationRepository _organizationRepository;
+        private readonly UserManager<User> _userManager;
+        private readonly IMapper _mapper;
+        private readonly VolunteerHubContext _context;
+        private readonly IProjectRepository _projectRepository;
+        private readonly IUserOrganizationRepository _userOrganizationRepository;
         private readonly ITaskRepository _taskRepository;
         private readonly IUserTaskRepository _userTaskRepository;
-        private readonly UserManager<User> _userManager;
 
         public AnnouncementsController(IAnnouncementRepository announcementRepository,
             IEmailService emailService,
+            JwtService jwtService,
+            IOrganizationRepository organizationRepository,
+            UserManager<User> userManager,
+            IMapper mapper,
+            VolunteerHubContext context,
+            IProjectRepository projectRepository,
+            IUserOrganizationRepository userOrganizationRepository,
             ITaskRepository taskRepository,
-            IUserTaskRepository userTaskRepository,
-            UserManager<User> userManager
+            IUserTaskRepository userTaskRepository
+            
             )
         {
             _announcementRepository = announcementRepository;
             _emailService = emailService;
+            _jwtService = jwtService;
+            _organizationRepository = organizationRepository;
+            _userManager = userManager;
+            _mapper = mapper;
+            _context = context;
+            _projectRepository = projectRepository;
+            _userOrganizationRepository = userOrganizationRepository;
             _taskRepository = taskRepository;
             _userTaskRepository = userTaskRepository;
-            _userManager = userManager;
         }
 
+        [Authorize(Roles ="Admin")]
+        [Authorize(Roles ="Coordinator")]
         [HttpPost("{projectId:long}/createAnnouncement")]
         public IActionResult CreateAnnouncement(long projectId, AnnouncementDto announcementDto)
         {
+            var project = _projectRepository.GetById(projectId);
+            if(project == null)
+            {
+                return BadRequest("No project found");
+            }
+            var organizationId = project.OrganizationId;
+
+            var organization = _organizationRepository.GetById(organizationId);
+            if(organization == null)
+            {
+                return BadRequest("No organization Found");
+            }
+            if(User.Identity == null)
+            {
+                return BadRequest("Not logged in");
+            }
+            var username = User.Identity.Name;
+            if(username == null)
+            {
+                return BadRequest("Username not found");
+            }
+            var loggedUser = _userManager.FindByNameAsync(username);
+            if(loggedUser.Result == null)
+            {
+                return BadRequest("User not found");
+            }
+            
+            if(loggedUser.Result.Id != organization.OwnerId || !_userManager.IsInRoleAsync(loggedUser.Result, "Admin").Result) {
+                return Forbid("You don't own this organization");
+            }
+            //pana aici e autorizarea
+
             var announcement = new Announcement();
             announcement.CreatedAt = DateTime.Now;
             announcement.UpdatedAt = DateTime.Now;
@@ -91,11 +147,48 @@ namespace VolunteerHub.Backend.Controllers
         [HttpPost("{Id:long}/deleteAnnouncement")]
         public IActionResult deleteAnnouncement( long Id)
         {
+            
             var announcement = _announcementRepository.GetById(Id);
+
+
             if(announcement == null)
             {
                 return BadRequest("No announcement found !");
             }
+
+            var project = _projectRepository.GetById(announcement.ProjectId);
+            if (project == null)
+            {
+                return BadRequest("No project found");
+            }
+            var organizationId = project.OrganizationId;
+
+            var organization = _organizationRepository.GetById(organizationId);
+            if (organization == null)
+            {
+                return BadRequest("No organization Found");
+            }
+            if (User.Identity == null)
+            {
+                return BadRequest("Not logged in");
+            }
+            var username = User.Identity.Name;
+            if (username == null)
+            {
+                return BadRequest("Username not found");
+            }
+            var loggedUser = _userManager.FindByNameAsync(username);
+            if (loggedUser.Result == null)
+            {
+                return BadRequest("User not found");
+            }
+
+            if (loggedUser.Result.Id != organization.OwnerId || !_userManager.IsInRoleAsync(loggedUser.Result, "Admin").Result)
+            {
+                return Forbid("You don't own this organization");
+            }
+
+
             _announcementRepository.Delete(announcement);
             _announcementRepository.Save();
             return Ok();

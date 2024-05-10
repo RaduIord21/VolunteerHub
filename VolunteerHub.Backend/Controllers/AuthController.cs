@@ -129,6 +129,8 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("Not pssible bos");
             }
         }
+
+        [Authorize]
         [HttpGet("user")]
         public new IActionResult User()
         {

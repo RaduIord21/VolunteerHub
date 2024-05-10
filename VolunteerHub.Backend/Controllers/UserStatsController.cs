@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,7 @@ namespace VolunteerHub.Backend.Controllers
             _userStatsRepository = userStatsRepository;
         }
 
+        [Authorize]
         [HttpGet("{userId}/UserStats")]
         public IActionResult GetUserStats([FromRoute(Name = "userId")] string? uid)
         {

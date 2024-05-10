@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using VolunteerHub.Backend.Models;
 using VolunteerHub.Backend.Services.Interfaces;
 using VolunteerHub.DataAccessLayer.Interfaces;
+using VolunteerHub.DataAccessLayer.Repositories;
 using VolunteerHub.DataModels.Models;
 
 namespace VolunteerHub.Backend.Controllers
@@ -14,15 +17,18 @@ namespace VolunteerHub.Backend.Controllers
         private readonly IEmailService _emailService;
         private readonly INotificationRepository _notificationRepository;
         private readonly UserManager<User> _userManager;
+        private readonly IOrganizationRepository _organizationRepository;
         public NotificationsController(
             IEmailService emailSerive,
             INotificationRepository notificationRepository,
-            UserManager<User> userManager
+            UserManager<User> userManager,
+            IOrganizationRepository organizationRepository
             )
         {
             _emailService = emailSerive;
             _notificationRepository = notificationRepository;
             _userManager = userManager;
+            _organizationRepository = organizationRepository;
         }
 
         [HttpGet("Notifications")]
@@ -62,9 +68,16 @@ namespace VolunteerHub.Backend.Controllers
 
         }
 
+        [Authorize(Roles ="Admin")]
+        [Authorize(Roles ="Coordinator")]
         [HttpPost("sendNotification")]
         public async Task<IActionResult> SendNotification ([FromBody] NotificationDto notificationDto)
         {
+
+            
+
+            //pana aici e autorizarea
+            
             Notification notification = new();
             if (notificationDto.Email == null || notificationDto.Subject == null || notificationDto.Content == null) {
                 return BadRequest("Invalid message");

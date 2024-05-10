@@ -95,7 +95,12 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return Ok("User not found");
                 }
-                
+
+                if(user.Result.Id != org.OwnerId)
+                {
+                    return BadRequest("User and organization do not match");
+                }
+
 
                 var project = new Project
                 {
@@ -134,20 +139,47 @@ namespace VolunteerHub.Backend.Controllers
         }
         [Authorize(Roles ="Coordinator,Admin")]
         [HttpPost("{Id:long}/changeProjectName")]
-        public IActionResult changeProjectName(long Id, [FromBody] ChangeProjectNameDto changeProjectNameDto)
+        public IActionResult ChangeProjectName(long Id, [FromBody] ChangeProjectNameDto changeProjectNameDto)
         {
             try
             {
-                if(changeProjectNameDto == null)
+                if (User.Identity == null)
                 {
-                    return BadRequest("No data recieved");
+                    return BadRequest("Null identity");
                 }
+                var userName = User.Identity.Name;
+                if (userName == null)
+                {
+                    return Ok("Identity not found");
+                }
+                var user = _userManager.FindByNameAsync(userName);
+                if (user.Result == null)
+                {
+                    return Ok("User not found");
+                }
+                
                 var project = _projectRepository.GetById(Id);
                 if (project == null)
                 {
                     return BadRequest("No project found");
-                }   
-                if(changeProjectNameDto.Name.IsNullOrEmpty())
+                }
+
+                var org = _organizationRepository.GetById(project.OrganizationId);
+
+                if (org == null)
+                {
+                    return BadRequest("No organization Found");
+                }
+
+                if (org.OwnerId != user.Result.Id) {
+                    return Forbid("User and organization do not match");
+                }
+                if (changeProjectNameDto == null)
+                {
+                    return BadRequest("No data recieved");
+                }
+                  
+                if(changeProjectNameDto.Name == null)
                 {
                     return BadRequest("Data is missing");
                 }
@@ -162,21 +194,51 @@ namespace VolunteerHub.Backend.Controllers
             }
         }
 
-       
 
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Coordinator")]
         [HttpPost("{Id:long}/changeDescription")]
         public IActionResult ChangeDescription(long Id,[FromBody]ChangeDescriptionDto changeDescriptionDto)
         
         {
-            if (changeDescriptionDto == null)
+            if (User.Identity == null)
             {
-                return BadRequest("Server got null");
+                return BadRequest("Null identity");
             }
+            var userName = User.Identity.Name;
+            if (userName == null)
+            {
+                return Ok("Identity not found");
+            }
+            var user = _userManager.FindByNameAsync(userName);
+            if (user.Result == null)
+            {
+                return Ok("User not found");
+            }
+
             var project = _projectRepository.GetById(Id);
             if (project == null)
             {
                 return BadRequest("No project found");
             }
+
+            var org = _organizationRepository.GetById(project.OrganizationId);
+
+            if (org == null)
+            {
+                return BadRequest("No organization Found");
+            }
+
+            if (org.OwnerId != user.Result.Id)
+            {
+                return Forbid("User and organization do not match");
+            }
+
+            if (changeDescriptionDto == null)
+            {
+                return BadRequest("Server got null");
+            }
+            
 
             if(changeDescriptionDto.Description == null)
             {
@@ -188,7 +250,8 @@ namespace VolunteerHub.Backend.Controllers
             return Ok("Description Changed sucessfully");
         }
 
-
+        /*[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Coordinator")]
         [HttpPost("{Id:long}/addMembers")]
         public IActionResult AddMembers(long Id,[FromBody]ProjectUserDto projectUsers) 
         {
@@ -207,16 +270,46 @@ namespace VolunteerHub.Backend.Controllers
                 var _ = _userManager.UpdateAsync(u.Result).Result;
             }
             return Ok("Success");
-        }
+        }*/
 
-       [HttpPost("{Id:long}/deleteProject")]
-        public IActionResult deleteProject(long Id)
+
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Coordinator")]
+        [HttpPost("{Id:long}/deleteProject")]
+        public IActionResult DeleteProject(long Id)
         {
             var project = _projectRepository.GetById(Id);
             if (project == null)
             {
                 return BadRequest("Project Not found");
             }
+
+            var organization = _organizationRepository.GetById(project.OrganizationId);
+            if (organization == null)
+            {
+                return BadRequest("No organization for this project ");
+            }
+
+            if (User.Identity == null)
+            {
+                return BadRequest("Null identity");
+            }
+            var userName = User.Identity.Name;
+            if (userName == null)
+            {
+                return Ok("Identity not found");
+            }
+            var user = _userManager.FindByNameAsync(userName);
+            if (user.Result == null)
+            {
+                return Ok("User not found");
+            }
+
+            if(user.Result.Id != organization.OwnerId)
+            {
+                return Forbid("You are not owner of this organization ");
+            }
+
             _projectRepository.Delete(project);
             _projectRepository.Save();
             var stats = _projectStatsRepository.GetByProjectId(project.Id);
