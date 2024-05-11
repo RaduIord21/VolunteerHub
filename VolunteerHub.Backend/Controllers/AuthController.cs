@@ -13,6 +13,10 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using VolunteerHub.DataAccessLayer.Repositories;
 using System;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
+using System.Diagnostics;
 
 namespace VolunteerHub.Backend.Controllers
 {
@@ -22,7 +26,6 @@ namespace VolunteerHub.Backend.Controllers
     {
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
-        private readonly JwtService _jwtService;
         private readonly IServiceProvider _serviceProvider;
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
@@ -31,7 +34,6 @@ namespace VolunteerHub.Backend.Controllers
         public AuthController(
             IUserRepository userRepository,
             IMapper mapper,
-            JwtService jwtService,
             IServiceProvider serviceProvider,
             UserManager<User> userManager,
             SignInManager<User> signInManager,
@@ -40,7 +42,6 @@ namespace VolunteerHub.Backend.Controllers
         {
             _userRepository = userRepository;
             _mapper = mapper;
-            _jwtService = jwtService;
             _serviceProvider = serviceProvider;
             _userManager = userManager;
             _signInManager = signInManager;
@@ -108,11 +109,27 @@ namespace VolunteerHub.Backend.Controllers
                         if (user != null)
                         {
                             var role = await _userManager.GetRolesAsync(user);
-                            var jwt = _jwtService.Generate(user.Id, role[0]);
-                            Response.Cookies.Append("jwt", jwt, new CookieOptions
+
+                            var claims = new List<Claim>();
+                            claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+                            claims.Add(new Claim(ClaimTypes.Name, user.UserName ?? ""));
+                            //for each role, add a claim
+                            foreach (var claim in role)
                             {
-                                HttpOnly = true
-                            });
+                                claims.Add(new Claim(ClaimTypes.Role, role[0]));
+                            }
+
+
+                            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);  // delete old cookie if exist
+
+                            await HttpContext.SignInAsync(
+                                CookieAuthenticationDefaults.AuthenticationScheme, 
+                                new ClaimsPrincipal(claimsIdentity),
+                                  new AuthenticationProperties { IsPersistent = true }                          // remember me
+                            );
+
                             return Ok("Success");
                         }
                         return BadRequest("Not possible bos");
@@ -132,26 +149,20 @@ namespace VolunteerHub.Backend.Controllers
 
         [Authorize]
         [HttpGet("user")]
-        public new IActionResult User()
+        public async Task<IActionResult> GetUser()
         {
             try
             {
-                var jwt = Request.Cookies["jwt"];
-                if (jwt == null)
-                {
-                    return BadRequest("Invalid cookie");
-                }
-                var token = _jwtService.Verify(jwt);
-                var issuer = token.Issuer;
-                var user = _userManager.FindByIdAsync(issuer);
-                if (user.Result == null)
+
+                var user = await _userManager.GetUserAsync(HttpContext.User);
+                if (user == null)
                 {
                     return BadRequest("Invalid User !!!");
                 }
-                var userRoles = _userManager.GetRolesAsync(user.Result).Result[0];
+                var userRoles = _userManager.GetRolesAsync(user).Result[0];
                 var resp = new
                 {
-                    user = user.Result,
+                    //user = user.Result,
                     roles = userRoles
                 };
                 return Ok(resp);
@@ -162,9 +173,10 @@ namespace VolunteerHub.Backend.Controllers
             }
         }
         [HttpPost("logout")]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
-            Response.Cookies.Delete("jwt");
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
             return Ok("Success");
         }
     }

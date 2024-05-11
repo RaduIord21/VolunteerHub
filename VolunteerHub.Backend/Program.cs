@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -15,6 +15,7 @@ using VolunteerHub.Backend.Data;
 using System.Text.Json.Serialization;
 using VolunteerHub.Backend.Services.Interfaces;
 using VolunteerHub.Backend.Services.Implementations;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,35 @@ builder.Services.AddDefaultIdentity<User>(
     options => options.SignIn.RequireConfirmedAccount = false)
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<VolunteerHubContext>();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+})
+
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/api/login"; // Specify the login page URL
+        options.AccessDeniedPath = "/"; // Specify the access denied page URL
+        //options.Cookie.Name = "VolunteerHubSession";
+        options.Events.OnRedirectToLogin = context =>
+        {
+            // Dacă cererea este pentru API, returnează 401
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = 401;
+                return Task.CompletedTask;
+            }
+
+            // Altfel, permite redirecționarea către pagina de autentificare
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+
 
 builder.Services.AddAuthorization(options =>
 {
@@ -53,14 +83,14 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserTaskRepository, UserTaskRepository>();
 builder.Services.AddScoped<IUserOrganizationRepository, UserOrganizationRepository>();
 
-builder.Services.AddTransient<IEmailService, EmailService>();   
+builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddCors(
     options =>
     {
 
         options.AddPolicy("AllowSpecificOrigin", builder =>
         {
-            builder.WithOrigins("http://localhost:3000")    
+            builder.WithOrigins("http://localhost:3000")
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();

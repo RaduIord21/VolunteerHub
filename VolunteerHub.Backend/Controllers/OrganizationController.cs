@@ -14,7 +14,6 @@ namespace VolunteerHub.Backend.Controllers
     [ApiController]
     public class OrganizationController : Controller
     {
-        private readonly JwtService _jwtService;
         private readonly IOrganizationRepository _organizationRepository;
         private readonly UserManager<User> _userManager;
         private readonly IMapper _mapper;
@@ -24,7 +23,6 @@ namespace VolunteerHub.Backend.Controllers
 
         public OrganizationController(
 
-            JwtService jwtService,
             IOrganizationRepository organizationRepository,
             UserManager<User> userManager,
             IMapper mapper,
@@ -33,7 +31,6 @@ namespace VolunteerHub.Backend.Controllers
             IUserOrganizationRepository userOrganizationRepository
             )
         {
-            _jwtService = jwtService;
             _organizationRepository = organizationRepository;
             _userManager = userManager;
             _mapper = mapper;
@@ -41,9 +38,9 @@ namespace VolunteerHub.Backend.Controllers
             _projectRepository = projectRepository;
             _userOrganizationRepository = userOrganizationRepository;
         }
-        [AllowAnonymous]    
+        [AllowAnonymous]
         [HttpPost("joinOrganization")]
-        public IActionResult JoinOrganization([FromQuery(Name ="Code")]string code)
+        public IActionResult JoinOrganization([FromQuery(Name = "Code")] string code)
         {
             try
             {
@@ -52,7 +49,7 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return Ok("No organization found");
                 }
-                
+
                 if (User.Identity.Name == null)
                 {
                     return BadRequest("Not logged in");
@@ -122,7 +119,7 @@ namespace VolunteerHub.Backend.Controllers
                 Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.VolunteerRole)).Wait();
                 Task.Run(() => _userManager.AddToRoleAsync(user.Result, Constants.CoordinatorRole)).Wait();
 
-                
+
                 var UserOrg = new UserOrganization()
                 {
                     OrganizationId = org.Id,
@@ -182,7 +179,7 @@ namespace VolunteerHub.Backend.Controllers
 
             var isAdmin = _userManager.IsInRoleAsync(user.Result, Constants.AdministratorRole);
 
-            if(isAdmin.Result)
+            if (isAdmin.Result)
             {
                 _organizationRepository.Delete(org);
                 _organizationRepository.Save();
@@ -201,7 +198,7 @@ namespace VolunteerHub.Backend.Controllers
         }
 
         [HttpPost("{Id:long}/quitOrganization")]
-        public IActionResult QuitOrganization(long Id,quitOrganizationDto quitOrganizationDto)
+        public IActionResult QuitOrganization(long Id, quitOrganizationDto quitOrganizationDto)
         {
 
             if (User.Identity == null)
@@ -223,7 +220,7 @@ namespace VolunteerHub.Backend.Controllers
 
             Task.Run(() => _userManager.RemoveFromRoleAsync(user.Result, Constants.CoordinatorRole)).Wait();
             Task.Run(() => _userManager.AddToRoleAsync(user.Result, Constants.VolunteerRole)).Wait();
-            
+
             var userOrganization = _userOrganizationRepository.Get(uo => uo.OrganizationId == Id && uo.UserId == user.Result.Id);
             if (userOrganization == null)
             {
@@ -246,7 +243,7 @@ namespace VolunteerHub.Backend.Controllers
             Task.Run(() => _userManager.RemoveFromRoleAsync(newCoord.Result, Constants.VolunteerRole)).Wait();
             Task.Run(() => _userManager.AddToRoleAsync(newCoord.Result, Constants.CoordinatorRole)).Wait();
 
-            
+
             return Ok("Success");
         }
 
@@ -254,18 +251,21 @@ namespace VolunteerHub.Backend.Controllers
         public IActionResult Organization(long Id)
         {
             var Organization = _organizationRepository.GetById(Id);
-            if (Organization == null) {
+            if (Organization == null)
+            {
                 return BadRequest("No Organization Found");
             }
             var userOrgs = _userOrganizationRepository.Get(uo => uo.OrganizationId == Organization.Id);
             IList<User>? Users = new List<User>();
-            foreach (var uo in userOrgs) {
+            foreach (var uo in userOrgs)
+            {
                 if (uo.UserId == null)
                 {
                     continue;
                 }
                 var u = _userManager.FindByIdAsync(uo.UserId);
-                if (u.Result == null) {
+                if (u.Result == null)
+                {
                     continue;
                 }
                 Users.Add(u.Result);
@@ -278,30 +278,26 @@ namespace VolunteerHub.Backend.Controllers
             return Ok(rsp);
         }
 
-        [AllowAnonymous]
+        [Authorize]
         [HttpGet("organizations")]
         public IActionResult Organizations()
         {
             try
             {
-                var jwt = Request.Cookies["jwt"];
-                if (jwt == null)
+                var user = _userManager.GetUserAsync(HttpContext.User);
+                if (user == null)
                 {
-                    return Ok("Not Logged in");
+                    return BadRequest("Not logged in");
                 }
-                var token = _jwtService.Verify(jwt);
-                var issuer = token.Issuer;
-                var user = _userManager.FindByIdAsync(issuer);
-                if (user.Result == null)
-                {
-                    return Ok("No users");
-                }
-                var UserOrgs = _userOrganizationRepository.Get(o => o.UserId == user.Result.Id);
+
+                var UserOrgs = _userOrganizationRepository.Get(o => o.User == user.Result);
                 if (UserOrgs == null)
                 {
                     return Ok("No organizations found for the user");
                 }
-                IList<Organization>? orgs = new List<Organization>();
+               
+                
+                List<object> response = new();
                 foreach (var uo in UserOrgs)
                 {
                     var o = _organizationRepository.GetById(uo.OrganizationId);
@@ -309,13 +305,25 @@ namespace VolunteerHub.Backend.Controllers
                     {
                         continue;
                     }
-                    orgs.Add(o);
+                    var isOwner = false;
+                    if(o.OwnerId == user.Result.Id)
+                    {
+                        isOwner = true;
+                    }
+                    var rsp = new
+                    {
+                        OrganizationId = o.Id,
+                        OrganizationName = o.Name,
+                        IsOwner = isOwner
+                    };
+                    response.Add(rsp);
                 }
-                return Ok(orgs);
+                
+                return Ok(response);
             }
             catch (Exception e)
             {
-                return Ok(e);
+                return BadRequest(e);
             }
         }
         [Authorize(Roles = "Admin")]
@@ -323,7 +331,7 @@ namespace VolunteerHub.Backend.Controllers
         [HttpPost("{UserId}/kick")]
         public IActionResult KickMember(string UserId, KickDto kickDto)
         {
-           
+
             var user = _userManager.FindByIdAsync(UserId);
             if (user.Result == null)
             {
@@ -357,7 +365,7 @@ namespace VolunteerHub.Backend.Controllers
                 return Forbid("Not an owner of this organization");
             }
 
-            var userOrganizations  = _userOrganizationRepository.Get(uo => uo.UserId == UserId && uo.OrganizationId == kickDto.OrganizationId);
+            var userOrganizations = _userOrganizationRepository.Get(uo => uo.UserId == UserId && uo.OrganizationId == kickDto.OrganizationId);
             _userOrganizationRepository.Delete(userOrganizations[0]);
             _userOrganizationRepository.Save();
             return Ok("Successfully kicked player");
