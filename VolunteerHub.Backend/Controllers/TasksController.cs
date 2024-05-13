@@ -39,6 +39,14 @@ namespace VolunteerHub.Backend.Controllers
             _userOrganizationRepository = userOrganizationRepository;
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet("AllTasks")]
+        public IActionResult AllTasks()
+        {
+            return Ok(_taskRepository.GetAll());
+        }
+
+
         [HttpPost("{Id:long}/assignTask")]
         public IActionResult AssignTask(long Id, AssignUsersDto assingeeUserDto)
         {

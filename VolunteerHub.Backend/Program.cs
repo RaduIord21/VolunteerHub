@@ -16,6 +16,10 @@ using System.Text.Json.Serialization;
 using VolunteerHub.Backend.Services.Interfaces;
 using VolunteerHub.Backend.Services.Implementations;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,36 +32,24 @@ builder.Services.AddDbContext<VolunteerHubContext>(options =>
 builder.Services.AddDefaultIdentity<User>(
     options => options.SignIn.RequireConfirmedAccount = false)
     .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<VolunteerHubContext>();
+    .AddEntityFrameworkStores<VolunteerHubContext>()
+    .AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-})
-
-    .AddCookie(options =>
+//https://www.c-sharpcorner.com/article/jwt-json-web-token-authentication-in-asp-net-core/
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        options.LoginPath = "/api/login"; // Specify the login page URL
-        options.AccessDeniedPath = "/"; // Specify the access denied page URL
-        //options.Cookie.Name = "VolunteerHubSession";
-        options.Events.OnRedirectToLogin = context =>
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Dacă cererea este pentru API, returnează 401
-            if (context.Request.Path.StartsWithSegments("/api"))
-            {
-                context.Response.StatusCode = 401;
-                return Task.CompletedTask;
-            }
-
-            // Altfel, permite redirecționarea către pagina de autentificare
-            context.Response.Redirect(context.RedirectUri);
-            return Task.CompletedTask;
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Issuer"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
-
 
 builder.Services.AddAuthorization(options =>
 {
@@ -67,7 +59,31 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "VolunteerHub", Version = "v1" });
+    // Include 'SecurityScheme' to use JWT Authentication
+    var jwtSecurityScheme = new OpenApiSecurityScheme
+    {
+        BearerFormat = "JWT",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        //Type = SecuritySchemeType.ApiKey,           //
+        Type = SecuritySchemeType.Http,
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
+        Description = "Put **_ONLY_** your JWT Bearer token on textbox below!",
+
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+
+    c.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { jwtSecurityScheme, Array.Empty<string>() }
+    });
 });
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
@@ -143,7 +159,8 @@ if (app.Environment.IsDevelopment())
     });
     app.UseRouting();
     app.UseHttpsRedirection();
-    app.UseHttpLogging();
+    app.UseHttpLogging(); 
+    //app.UseMiddleware<JwtMiddleware>();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();

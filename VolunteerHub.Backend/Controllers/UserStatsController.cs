@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using VolunteerHub.DataAccessLayer.Interfaces;
+using VolunteerHub.DataAccessLayer.Repositories;
 using VolunteerHub.DataModels.Models;
 
 namespace VolunteerHub.Backend.Controllers
@@ -21,6 +22,13 @@ namespace VolunteerHub.Backend.Controllers
             )
         {
             _userStatsRepository = userStatsRepository;
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("AllUserStats")]
+        public IActionResult AllUserStats()
+        {
+            return Ok(_userStatsRepository.GetAll());
         }
 
         [Authorize]

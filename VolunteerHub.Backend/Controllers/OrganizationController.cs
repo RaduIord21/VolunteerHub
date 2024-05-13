@@ -38,7 +38,15 @@ namespace VolunteerHub.Backend.Controllers
             _projectRepository = projectRepository;
             _userOrganizationRepository = userOrganizationRepository;
         }
-        [AllowAnonymous]
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("AllOrganizations")]
+        public IActionResult GetAllOrganizations()
+        {
+            return Ok(_organizationRepository.GetAll());
+        }
+
+        [Authorize]
         [HttpPost("joinOrganization")]
         public IActionResult JoinOrganization([FromQuery(Name = "Code")] string code)
         {
@@ -295,8 +303,7 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return Ok("No organizations found for the user");
                 }
-               
-                
+
                 List<object> response = new();
                 foreach (var uo in UserOrgs)
                 {

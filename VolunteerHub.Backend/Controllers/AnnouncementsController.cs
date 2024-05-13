@@ -55,6 +55,14 @@ namespace VolunteerHub.Backend.Controllers
             _userTaskRepository = userTaskRepository;
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet("AllAnouncements")]
+        public IActionResult GetAllAnnouncements()
+        {
+            var announcements = _announcementRepository.GetAll();
+            return Ok(announcements);
+        }
+
         [Authorize(Roles ="Admin")]
         [Authorize(Roles ="Coordinator")]
         [HttpPost("{projectId:long}/createAnnouncement")]

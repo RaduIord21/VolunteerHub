@@ -39,7 +39,15 @@ namespace VolunteerHub.Backend.Controllers
             _projectStatsRepository = projectStatsRepository;
         }
 
-        [AllowAnonymous]
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("AllProjects")]
+        public IActionResult GetAllProjects() {
+            return Ok(_projectRepository.GetAll());
+        }
+
+
+        [Authorize]
         [HttpGet("{Id:long}/getProject")]
         public IActionResult GetProject(long Id)
         {

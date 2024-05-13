@@ -26,6 +26,7 @@ namespace VolunteerHub.Backend.Controllers
     {
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
+        private readonly JwtService _jwtService;
         private readonly IServiceProvider _serviceProvider;
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
@@ -34,6 +35,7 @@ namespace VolunteerHub.Backend.Controllers
         public AuthController(
             IUserRepository userRepository,
             IMapper mapper,
+            JwtService jwtService,
             IServiceProvider serviceProvider,
             UserManager<User> userManager,
             SignInManager<User> signInManager,
@@ -42,10 +44,18 @@ namespace VolunteerHub.Backend.Controllers
         {
             _userRepository = userRepository;
             _mapper = mapper;
+            _jwtService = jwtService;
             _serviceProvider = serviceProvider;
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
+        }
+
+        [Authorize(Roles ="Admin")]
+        [HttpGet("AllUsers")]
+        public IActionResult GetAllUsers()
+        {
+            return Ok(_userManager.Users.ToList());
         }
 
         [AllowAnonymous]
@@ -108,31 +118,35 @@ namespace VolunteerHub.Backend.Controllers
                         var user = await _userManager.FindByNameAsync(loginDto.UserName);
                         if (user != null)
                         {
-                            var role = await _userManager.GetRolesAsync(user);
-
-                            var claims = new List<Claim>();
-                            claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
-                            claims.Add(new Claim(ClaimTypes.Name, user.UserName ?? ""));
-                            //for each role, add a claim
-                            foreach (var claim in role)
+                            var roles = await _userManager.GetRolesAsync(user);
+/*
+                            var claims = new List<Claim>
                             {
-                                claims.Add(new Claim(ClaimTypes.Role, role[0]));
+                                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                                new(ClaimTypes.Name, user.UserName ?? "")
+                            };
+                            //for each role, add a claim
+                            foreach (var claim in roles)
+                            {
+                                claims.Add(new Claim(ClaimTypes.Role, roles[0]));
                             }
 
 
-                            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);*/
 
-                            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);  // delete old cookie if exist
+
+                            /*await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);  // delete old cookie if exist
 
                             await HttpContext.SignInAsync(
                                 CookieAuthenticationDefaults.AuthenticationScheme, 
                                 new ClaimsPrincipal(claimsIdentity),
                                   new AuthenticationProperties { IsPersistent = true }                          // remember me
-                            );
+                            );*/
 
-                            return Ok("Success");
+                            var tokenString = this._jwtService.Generate(user.Id, roles);
+                            return Ok(new { token = tokenString });
                         }
-                        return BadRequest("Not possible bos");
+                        return BadRequest("Unable to log in");
                     }
                     ModelState.AddModelError(string.Empty, "Invalid Login Attempt");
                     return BadRequest("Invalid user");
@@ -143,7 +157,7 @@ namespace VolunteerHub.Backend.Controllers
             catch (Exception e)
             {
                 Console.Write(e + "EEERRROOOAAARRREEE");
-                return BadRequest("Not pssible bos");
+                return BadRequest(e.Message);
             }
         }
 
@@ -159,10 +173,10 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return BadRequest("Invalid User !!!");
                 }
-                var userRoles = _userManager.GetRolesAsync(user).Result[0];
+                var userRoles = _userManager.GetRolesAsync(user).Result;
                 var resp = new
                 {
-                    //user = user.Result,
+                    user = user.UserName,
                     roles = userRoles
                 };
                 return Ok(resp);
