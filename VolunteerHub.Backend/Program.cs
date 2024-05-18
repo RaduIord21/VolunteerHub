@@ -29,11 +29,23 @@ builder.Services.AddDbContext<VolunteerHubContext>(options =>
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 //!!builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddDefaultIdentity<User>(
-    options => options.SignIn.RequireConfirmedAccount = false)
+    options =>
+    { 
+        options.SignIn.RequireConfirmedAccount = false;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequiredLength = 8;
+        options.Password.RequiredUniqueChars = 1;
+    })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<VolunteerHubContext>()
     .AddDefaultTokenProviders();
+    
+
 
 //https://www.c-sharpcorner.com/article/jwt-json-web-token-authentication-in-asp-net-core/
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -47,12 +59,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Issuer"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+            ClockSkew = TimeSpan.Zero
         };
     });
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("Admin",
+            authBuilder =>
+            {
+                authBuilder.RequireRole("Admin");
+            });
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
@@ -66,7 +84,6 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        //Type = SecuritySchemeType.ApiKey,           //
         Type = SecuritySchemeType.Http,
         Scheme = JwtBearerDefaults.AuthenticationScheme,
         Description = "Put **_ONLY_** your JWT Bearer token on textbox below!",

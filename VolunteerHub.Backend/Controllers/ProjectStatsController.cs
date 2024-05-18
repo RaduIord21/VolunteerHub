@@ -30,7 +30,7 @@ namespace VolunteerHub.Backend.Controllers
         [HttpGet("{Id:long}/ProjectStats")]
         public IActionResult GetStats(long Id)
         {
-            var stats = _projectStatsRepository.GetByProjectId(Id);
+            var stats = _projectStatsRepository.GetByProjectId(Id); 
             return Ok(stats);
         }
     }

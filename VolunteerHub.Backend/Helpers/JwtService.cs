@@ -15,7 +15,7 @@ namespace VolunteerHub.Backend.Helpers
         {
             _config = config;
         }
-        public string Generate(string userId, IList<string> roles)
+        public string Generate(string userId, IList<string> roles, IDictionary<string, string>? additionalItems = null)
         {
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var credentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256Signature);
@@ -25,14 +25,23 @@ namespace VolunteerHub.Backend.Helpers
                 new(ClaimTypes.NameIdentifier, userId),
             };
 
-            //for each role, add a claim
-            foreach (var claim in roles)
+            if(additionalItems != null)
             {
-                claims.Add(new Claim(ClaimTypes.Role, claim));
+                //claims.AddRange(additionalClaims);
+                foreach (var keyValuePair in additionalItems)
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, keyValuePair.Value));
+                }
+            }
+            
+            //for each role, add a claim
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
             var header  = new JwtHeader(credentials);
-            var payload = new JwtPayload(userId, "api", claims, null, DateTime.Today.AddDays(1));
+            var payload = new JwtPayload(userId, "api", claims, null, DateTime.UtcNow.AddDays(1));
             var securityToken = new JwtSecurityToken(header, payload);
             return new JwtSecurityTokenHandler().WriteToken(securityToken);
         }

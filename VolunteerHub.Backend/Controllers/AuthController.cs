@@ -51,11 +51,42 @@ namespace VolunteerHub.Backend.Controllers
             _roleManager = roleManager;
         }
 
-        [Authorize(Roles ="Admin")]
+//        [Authorize(Roles ="Admin")]
         [HttpGet("AllUsers")]
         public IActionResult GetAllUsers()
         {
             return Ok(_userManager.Users.ToList());
+        }
+
+
+        [HttpPost("changepassword")]
+        public async Task<IActionResult> ChangePasswordAsync(ChangePasswordDto changePasswordDto)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) {
+                return BadRequest("No user found");
+            }
+            
+            if(changePasswordDto.oldPassword == null)
+            {
+                return BadRequest("Campurile nu pot fi goale");
+            }
+
+            if (changePasswordDto.newPassword == null)
+            {
+                return BadRequest("Campurile nu pot fi goale");
+            }
+            if(changePasswordDto.newPassword != changePasswordDto.confirmPassword)
+            {
+                return BadRequest("Parolele nu corespund");
+            }
+            var result = await _userManager.ChangePasswordAsync(user, changePasswordDto.oldPassword, changePasswordDto.newPassword);
+            if (result.Succeeded)
+            {
+                await _signInManager.RefreshSignInAsync(user);
+                return Ok("Success");
+            }
+            return BadRequest("Parola trebuie sa contina minim 8 caractere,o litera mare, o litera mica, o cifra si un simbol");
         }
 
         [AllowAnonymous]
@@ -112,7 +143,7 @@ namespace VolunteerHub.Backend.Controllers
             {
                 if (ModelState.IsValid)
                 {
-                    var result = await _signInManager.PasswordSignInAsync(loginDto.UserName, loginDto.Password, loginDto.RememberMe, false);
+                    var result = await _signInManager.PasswordSignInAsync(loginDto.UserName, loginDto.Password, false, false);
                     if (result.Succeeded)
                     {
                         var user = await _userManager.FindByNameAsync(loginDto.UserName);
@@ -144,7 +175,7 @@ namespace VolunteerHub.Backend.Controllers
                             );*/
 
                             var tokenString = this._jwtService.Generate(user.Id, roles);
-                            return Ok(new { token = tokenString });
+                            return Ok(new { token = tokenString });     
                         }
                         return BadRequest("Unable to log in");
                     }
@@ -177,6 +208,7 @@ namespace VolunteerHub.Backend.Controllers
                 var resp = new
                 {
                     user = user.UserName,
+                    email = user.Email,
                     roles = userRoles
                 };
                 return Ok(resp);
@@ -189,7 +221,7 @@ namespace VolunteerHub.Backend.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await _signInManager.SignOutAsync();
 
             return Ok("Success");
         }

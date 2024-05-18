@@ -58,11 +58,8 @@ namespace VolunteerHub.Backend.Controllers
                     return Ok("No organization found");
                 }
 
-                if (User.Identity.Name == null)
-                {
-                    return BadRequest("Not logged in");
-                }
-                var user = _userManager.FindByNameAsync(User.Identity.Name);
+                
+                var user = _userManager.GetUserAsync(User);
                 if (user.Result == null)
                 {
                     return BadRequest("No user found");
@@ -95,16 +92,8 @@ namespace VolunteerHub.Backend.Controllers
             try
             {
 
-                if (User.Identity == null)
-                {
-                    return BadRequest("missing Identity");
-                }
-                var userName = User.Identity.Name;
-                if (userName == null)
-                {
-                    return Ok("Identitate negasita");
-                }
-                var user = _userManager.FindByNameAsync(userName);
+                
+                var user = _userManager.GetUserAsync(User);
                 if (user.Result == null)
                 {
                     return Ok("User negasit in baza de date");
@@ -255,6 +244,7 @@ namespace VolunteerHub.Backend.Controllers
             return Ok("Success");
         }
 
+        [Authorize]
         [HttpGet("{Id:long}/organization")]
         public IActionResult Organization(long Id)
         {
@@ -263,8 +253,21 @@ namespace VolunteerHub.Backend.Controllers
             {
                 return BadRequest("No Organization Found");
             }
+            
+            return Ok(Organization);
+        }
+
+        [Authorize]
+        [HttpGet("{Id:long}/organization-users")]
+        public IActionResult GetOrganizationUsers(long Id)
+        {
+            var Organization = _organizationRepository.GetById(Id);
+            if (Organization == null)
+            {
+                return BadRequest("No Organization Found");
+            }
             var userOrgs = _userOrganizationRepository.Get(uo => uo.OrganizationId == Organization.Id);
-            IList<User>? Users = new List<User>();
+            var response = new List<object>();
             foreach (var uo in userOrgs)
             {
                 if (uo.UserId == null)
@@ -276,15 +279,17 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     continue;
                 }
-                Users.Add(u.Result);
+                var currentObject = new { 
+                    u.Result.Email,
+                    u.Result.UserName,
+                    roles = _userManager.GetRolesAsync(u.Result).Result
+                };
+                response.Add(currentObject);
             }
-            var rsp = new
-            {
-                Users,
-                Organization
-            };
-            return Ok(rsp);
+
+            return Ok(response);
         }
+
 
         [Authorize]
         [HttpGet("organizations")]

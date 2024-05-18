@@ -50,6 +50,16 @@ namespace VolunteerHub.Backend.Controllers
         [HttpPost("{Id:long}/assignTask")]
         public IActionResult AssignTask(long Id, AssignUsersDto assingeeUserDto)
         {
+            var task = _taskRepository.GetById(Id);
+            if(task == null)
+            {
+                return BadRequest("No task found");
+            }
+            var projectStat = _projectStatsRepository.GetByProjectId(task.ProjectId);
+            if(projectStat == null)
+            {
+                return NotFound();
+            }
             var users = assingeeUserDto.UserIds;
             if (users == null)
             {
@@ -62,8 +72,12 @@ namespace VolunteerHub.Backend.Controllers
                     UserId = u,
                     TaskId = Id
                 };
+
                 _userTaskRepository.Add(ut);
                 _userTaskRepository.Save();
+                projectStat.TotalTasksAsigned += 1;
+                _projectStatsRepository.Update(projectStat);
+                _projectStatsRepository.Save();
             }
             return Ok("Success");
         }
@@ -125,16 +139,13 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("Unable to find the task");
             }
             var projectStat = _projectStatsRepository.GetByProjectId(projectTask.ProjectId);
-            if (User.Identity == null)
+            if (User.Identity == null)  
             {
                 return BadRequest("Not logged in");
             }
 
-            if (User.Identity.Name == null)
-            {
-                return BadRequest("Not logged in");
-            }
-            var user = _userManager.FindByNameAsync(User.Identity.Name);
+            
+            var user = _userManager.GetUserAsync(User);
             if (user.Result == null)
             {
                 return BadRequest("No user found");
@@ -188,7 +199,7 @@ namespace VolunteerHub.Backend.Controllers
             _projectStatsRepository.Save();
 
             _userStatsRepository.Save();
-            return Ok("Success");
+            return Ok(projectTask.ProjectId);
         }
 
         [HttpGet("{Id}/task")]
@@ -214,6 +225,7 @@ namespace VolunteerHub.Backend.Controllers
                 projectTask.Description = editTaskDto.Description;
                 projectTask.Action = editTaskDto.Action;
                 projectTask.IsTime = editTaskDto.IsTime;
+                projectTask.MeasureUnit = editTaskDto.MeasureUnit;
                 if (projectTask.SuccessTreshold < editTaskDto.SuccessTreshold)
                 {
                     projectTask.SuccessTreshold = editTaskDto.SuccessTreshold;
@@ -238,7 +250,7 @@ namespace VolunteerHub.Backend.Controllers
                 }
                 _taskRepository.Update(projectTask);
                 _taskRepository.Save();
-                return Ok("Success");
+                return Ok(projectTask.ProjectId);
             }
             catch (Exception)
             {
@@ -300,7 +312,7 @@ namespace VolunteerHub.Backend.Controllers
             if (userTask == null) {
                 return BadRequest("User not in task");
             }
-            _userTaskRepository.Delete(userTask[0]);
+            _userTaskRepository.Delete(userTask[0]);    
             _userTaskRepository.Save();
             return Ok("Success");
         }

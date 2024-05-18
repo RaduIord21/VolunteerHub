@@ -80,7 +80,7 @@ namespace VolunteerHub.Backend.Controllers
             }
         }
         [HttpPost("{organizationId:long}/createProject")]
-        public IActionResult createProject(long organizationId, ProjectsDto projectsDto)
+        public IActionResult CreateProject(long organizationId, ProjectsDto projectsDto)
         {
             try
             {
@@ -89,16 +89,8 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return BadRequest("No organization found");
                 }
-                if (User.Identity == null)
-                {
-                    return BadRequest("Null identity");
-                }
-                var userName = User.Identity.Name;
-                if (userName == null)
-                {
-                    return Ok("Identity not found");
-                }
-                var user = _userManager.FindByNameAsync(userName);
+                
+                var user = _userManager.GetUserAsync(User);
                 if (user.Result == null)
                 {
                     return Ok("User not found");
