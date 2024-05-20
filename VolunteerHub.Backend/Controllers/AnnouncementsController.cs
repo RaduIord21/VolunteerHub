@@ -63,8 +63,8 @@ namespace VolunteerHub.Backend.Controllers
             return Ok(announcements);
         }
 
-        [Authorize(Roles ="Admin")]
-        [Authorize(Roles ="Coordinator")]
+        //[Authorize(Roles ="Admin")]
+        //[Authorize(Roles ="Coordinator")]
         [HttpPost("{projectId:long}/createAnnouncement")]
         public IActionResult CreateAnnouncement(long projectId, AnnouncementDto announcementDto)
         {
@@ -80,22 +80,14 @@ namespace VolunteerHub.Backend.Controllers
             {
                 return BadRequest("No organization Found");
             }
-            if(User.Identity == null)
-            {
-                return BadRequest("Not logged in");
-            }
-            var username = User.Identity.Name;
-            if(username == null)
-            {
-                return BadRequest("Username not found");
-            }
-            var loggedUser = _userManager.FindByNameAsync(username);
+           
+            var loggedUser = _userManager.GetUserAsync(User);
             if(loggedUser.Result == null)
             {
                 return BadRequest("User not found");
             }
             
-            if(loggedUser.Result.Id != organization.OwnerId || !_userManager.IsInRoleAsync(loggedUser.Result, "Admin").Result) {
+            if(loggedUser.Result.Id != organization.OwnerId) {
                 return Forbid("You don't own this organization");
             }
             //pana aici e autorizarea
@@ -105,10 +97,11 @@ namespace VolunteerHub.Backend.Controllers
             announcement.UpdatedAt = DateTime.Now;
             announcement.Title = announcementDto.Title;
             announcement.ProjectId = projectId;
+            announcement.Project = project;
             announcement.Content = announcementDto.Content;
             _announcementRepository.Add(announcement);
             _announcementRepository.Save();
-            var tasks = _taskRepository.Get(t => t.ProjectId == announcement.ProjectId);
+            /*var tasks = _taskRepository.Get(t => t.ProjectId == announcement.ProjectId);
             var userEmails = new List<string>();
             foreach ( var task in tasks)
             {
@@ -138,18 +131,29 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     Task.Run(() => _emailService.SendEmailAsync(userEmail, announcement.Title, announcement.Content).Wait());
                 }
-             }
+             } */
             return Ok("Success");
         }
 
         [HttpGet("{Id}/announcements")]
         public IActionResult GetAnnouncement(long Id) {
 
-            IList<Announcement> announcement ;
-            
-            announcement = _announcementRepository.Get(a => a.ProjectId == Id);
-                
-            return Ok(announcement);
+            /*
+            IList<Announcement> announcement;
+            var org = _organizationRepository.GetById(Id);
+            var projects = _projectRepository.Get(p => p.OrganizationId == Id);
+            List <Announcement> announcements = new();
+            foreach(var proj in projects)
+            {
+                var ann = _announcementRepository.Get(a => a.ProjectId == proj.Id);
+                foreach(var a in ann)
+                {
+                    announcements.Add(a);
+                }
+            }
+                */
+            var announcements = _announcementRepository.GetAll();
+            return Ok(announcements);
         }
 
         [HttpPost("{Id:long}/deleteAnnouncement")]

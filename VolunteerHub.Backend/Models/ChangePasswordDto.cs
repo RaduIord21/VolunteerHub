@@ -1,8 +1,8 @@
-﻿namespace VolunteerHub.Backend.Controllers
+﻿namespace VolunteerHub.Backend.Models
 {
     public class ChangePasswordDto
     {
-        public string? newPassword {  get; set; }
+        public string? newPassword { get; set; }
 
         public string? oldPassword { get; set; }
 

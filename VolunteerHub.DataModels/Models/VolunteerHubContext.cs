@@ -51,7 +51,6 @@ public partial class VolunteerHubContext : IdentityDbContext<User, IdentityRole,
             entity.ToTable("Announcement");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.Content).HasMaxLength(255);
             entity.Property(e => e.Title).HasMaxLength(255);

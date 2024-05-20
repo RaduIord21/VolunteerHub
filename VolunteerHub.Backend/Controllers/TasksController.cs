@@ -139,7 +139,7 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("Unable to find the task");
             }
             var projectStat = _projectStatsRepository.GetByProjectId(projectTask.ProjectId);
-            if (User.Identity == null)  
+            if (User.Identity == null)      
             {
                 return BadRequest("Not logged in");
             }
