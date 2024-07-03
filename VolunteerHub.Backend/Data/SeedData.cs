@@ -120,12 +120,6 @@ namespace VolunteerHub.Backend.Data
             using (var context = new VolunteerHubContext(
                 serviceProvider.GetRequiredService<DbContextOptions<VolunteerHubContext>>()))
             {
-                // For sample purposes seed both with the same password.
-                // Password is set with the following:
-                // dotnet user-secrets set SeedUserPW <pw>
-                // The admin user can do anything
-
-
                 var organizationId = EnsureOrganization(serviceProvider, "Admin", "N/A", "admin");
                 var adminID = await EnsureUser(serviceProvider, testUserPw, "Admin", "admin@test.com", organizationId);
                 var role = await EnsureRole(serviceProvider, Constants.AdministratorRole);

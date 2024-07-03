@@ -31,53 +31,25 @@ namespace VolunteerHub.Backend.Controllers
         }
 
         // eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQ2OTg2MTczLWU4MDQtNGE2ZC04ZWZjLWJmZWI2OWUwMTU1NCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwiZXhwIjoxNzE1OTc5NjAwLCJpc3MiOiI0Njk4NjE3My1lODA0LTRhNmQtOGVmYy1iZmViNjllMDE1NTQiLCJhdWQiOiJhcGkifQ.UbrafkGbJS_vW2t138zIWcEj8XtjMJCPiEhH6uQ6EIQ
-        //[Authorize(Roles = "Admin")]
+        
         [HttpGet("imp")]
-        public async Task<IActionResult> Impersonate([FromQuery]string userId)
-        {
-            
-            try
-            {
+        public async Task<IActionResult> Impersonate([FromQuery]string userId){ 
+            try{
                 var user = await _userManager.FindByIdAsync(userId);
-                if (user == null)
-                {
+                if (user == null){
                     return NotFound("No such user");
                 }
                 var originalUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (originalUserId == null)
-                {
+                if (originalUserId == null){
                     return BadRequest("Claim is null");
                 }
-
-               // var impersonationClaims = new Dictionary<string, string>();
-                //impersonationClaims.Add(ClaimTypes.Name, originalUserId);
-                /*{
-                    new(ClaimTypes.Role, originalUserId),
-                };
-
-                var impersonationIdentity = new ClaimsIdentity(impersonationClaims, "Impersionation");*/
-
-                //await _signInManager.SignOutAsync();
-               // await _signInManager.SignInWithClaimsAsync(user, isPersistent: false, impersonationClaims);
-
-                /*var userPrincipal = _signInManager.CreateUserPrincipalAsync(user.Result);
-                userPrincipal.Result.AddIdentity(impersonationIdentity);
-
-                _signInManager.SignOutAsync();
-                _signInManager.Context.SignInAsync(IdentityConstants.ApplicationScheme, userPrincipal.Result);
-*/
                 var roles = await _userManager.GetRolesAsync(user);
                 roles.Add("impersionating:" + originalUserId);
-                var tokenString = this._jwtService.Generate(user.Id, roles);//, impersonationClaims);
-
+                var tokenString = _jwtService.Generate(user.Id, roles);
                 var handler = new JwtSecurityTokenHandler();
                 var jsonToken = handler.ReadToken(tokenString);
-
-                //return Ok(jsonToken);
                 return Ok(new { token = tokenString });
-
-            }catch (Exception ex)
-            {
+            }catch (Exception ex){
                 return BadRequest(ex.Message);
             }
         }

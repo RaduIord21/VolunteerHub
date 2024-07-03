@@ -24,7 +24,6 @@ namespace VolunteerHub.Backend.Controllers
             _userStatsRepository = userStatsRepository;
         }
 
-        [Authorize(Roles = "Admin")]
         [HttpGet("AllUserStats")]
         public IActionResult AllUserStats()
         {

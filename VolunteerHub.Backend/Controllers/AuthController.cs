@@ -52,6 +52,7 @@ namespace VolunteerHub.Backend.Controllers
         }
 
 //        [Authorize(Roles ="Admin")]
+    
         [HttpGet("AllUsers")]
         public IActionResult GetAllUsers()
         {
@@ -93,45 +94,47 @@ namespace VolunteerHub.Backend.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterDto registerDto)
         {
+            //preluarea datelor intr-un obiect user
             var u = new User
             {
                 UserName = registerDto.Username,
                 Email = registerDto.Email
             };
-            var user = _userManager.FindByNameAsync(registerDto.Username);
-            //_userRepository.Add(_mapper.Map<User>(registerDto));
-            //_userRepository.Save();
+            //verificarea existentei in baza de date
+            var user = _userManager.FindByEmailAsync(registerDto.Email);
+          
             if (user.Result != null)
             {
                 return BadRequest("User Already Exists");
             }
+            //adaugarea utilizatorui nou
             var r = _userManager.CreateAsync(u, registerDto.Password);
             if (r.Result == null)
             {
                 return BadRequest("Could not be created");
             }
-
+            //incadrarea in rolul de voluntar
             var myUser = _userManager.FindByNameAsync(u.UserName);
             if (myUser.Result != null)
-            {
+            {   
                 var addRole = _userManager.AddToRoleAsync(myUser.Result, Constants.VolunteerRole);
                 if (addRole.Result == null)
                 {
                     return BadRequest("Nu s-a adaugat rolul");
                 }
             }
-            if(myUser.Result == null)
+            // intitializare statistici
+
+            if (myUser.Result == null)
             {
                 return BadRequest("Register user not found");
             }
-
             UserStat stats = new()
             {
                 TasksCompleted = 0,
                 TasksAsigned = 0,
                 UserId = myUser.Result.Id
             };
-            Console.WriteLine("S-a salvat ce a fost trimis din backend");
             return Ok("Success");
         }
 
@@ -150,29 +153,6 @@ namespace VolunteerHub.Backend.Controllers
                         if (user != null)
                         {
                             var roles = await _userManager.GetRolesAsync(user);
-/*
-                            var claims = new List<Claim>
-                            {
-                                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                                new(ClaimTypes.Name, user.UserName ?? "")
-                            };
-                            //for each role, add a claim
-                            foreach (var claim in roles)
-                            {
-                                claims.Add(new Claim(ClaimTypes.Role, roles[0]));
-                            }
-
-
-                            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);*/
-
-
-                            /*await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);  // delete old cookie if exist
-
-                            await HttpContext.SignInAsync(
-                                CookieAuthenticationDefaults.AuthenticationScheme, 
-                                new ClaimsPrincipal(claimsIdentity),
-                                  new AuthenticationProperties { IsPersistent = true }                          // remember me
-                            );*/
 
                             var tokenString = this._jwtService.Generate(user.Id, roles);
                             return Ok(new { token = tokenString });     
@@ -182,12 +162,11 @@ namespace VolunteerHub.Backend.Controllers
                     ModelState.AddModelError(string.Empty, "Invalid Login Attempt");
                     return BadRequest("Invalid user");
                 }
-                return BadRequest("Error :::");
+                throw new BadHttpRequestException("Invalid data");
 
             }
             catch (Exception e)
             {
-                Console.Write(e + "EEERRROOOAAARRREEE");
                 return BadRequest(e.Message);
             }
         }
@@ -218,6 +197,8 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("Crapa");
             }
         }
+
+        [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {

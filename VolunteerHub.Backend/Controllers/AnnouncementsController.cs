@@ -55,7 +55,7 @@ namespace VolunteerHub.Backend.Controllers
             _userTaskRepository = userTaskRepository;
         }
 
-        [Authorize(Roles = "Admin")]
+       // [Authorize(Roles = "Admin")]
         [HttpGet("AllAnouncements")]
         public IActionResult GetAllAnnouncements()
         {

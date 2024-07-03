@@ -4,14 +4,11 @@ using VolunteerHub.Backend.Services.Interfaces;
 
 namespace VolunteerHub.Backend.Services.Implementations
 {
-    public class EmailService : IEmailService
-    {
-        public Task SendEmailAsync(string email, string subject, string message)
-        {
+    public class EmailService : IEmailService{
+        public Task SendEmailAsync(string email, string subject, string message){
             string mail = "vhub.No_reply@outlook.com";
             string pwd = "Parola123!";
-            var client = new SmtpClient("smtp-mail.outlook.com", 587)
-            {
+            var client = new SmtpClient("smtp-mail.outlook.com", 587){
                 EnableSsl = true,
                 Credentials = new NetworkCredential(mail, pwd)
             };
@@ -22,7 +19,7 @@ namespace VolunteerHub.Backend.Services.Implementations
                     subject,
                     message
                     )
-                );
+            );
         }
     }
 }

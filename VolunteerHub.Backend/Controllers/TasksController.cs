@@ -48,31 +48,24 @@ namespace VolunteerHub.Backend.Controllers
 
 
         [HttpPost("{Id:long}/assignTask")]
-        public IActionResult AssignTask(long Id, AssignUsersDto assingeeUserDto)
-        {
+        public IActionResult AssignTask(long Id, AssignUsersDto assingeeUserDto){
             var task = _taskRepository.GetById(Id);
-            if(task == null)
-            {
+            if(task == null){
                 return BadRequest("No task found");
             }
             var projectStat = _projectStatsRepository.GetByProjectId(task.ProjectId);
-            if(projectStat == null)
-            {
+            if(projectStat == null){
                 return NotFound();
             }
             var users = assingeeUserDto.UserIds;
-            if (users == null)
-            {
+            if (users == null){
                 return Ok("No users");
             }
-            foreach (var u in users)
-            {
-                UserTask ut = new()
-                {
+            foreach (var u in users){
+                UserTask ut = new(){
                     UserId = u,
                     TaskId = Id
                 };
-
                 _userTaskRepository.Add(ut);
                 _userTaskRepository.Save();
                 projectStat.TotalTasksAsigned += 1;
@@ -83,30 +76,22 @@ namespace VolunteerHub.Backend.Controllers
         }
 
         [HttpGet("{Id:long}/projectMembersForTask")]
-        public IActionResult ProjectMembers(long Id)
-        {
-
+        public IActionResult ProjectMembers(long Id){
             var project = _projectRepository.GetById(Id);
-            if (project == null)
-            {
+            if (project == null){
                 return BadRequest("No project found");
             }
-
             var usersOrgs = _userOrganizationRepository.Get(uo => uo.OrganizationId == project.OrganizationId);
-            if (usersOrgs == null)
-            {
+            if (usersOrgs == null){
                 return BadRequest("Users Not Found");
             }
             IList<User>? users = new List<User>();
-            foreach (var uo in usersOrgs)
-            {
-                if (uo.UserId == null)
-                {
+            foreach (var uo in usersOrgs){
+                if (uo.UserId == null){
                     continue;
                 }
                 var u = _userManager.FindByIdAsync(uo.UserId);
-                if (u.Result == null)
-                {
+                if (u.Result == null){
                     continue;
                 }
                 users.Add(u.Result);
@@ -115,73 +100,58 @@ namespace VolunteerHub.Backend.Controllers
         }
 
         [HttpGet("{projectId:long}/tasks")]
-        public IActionResult Tasks(long projectId)
-        {
-
+        public IActionResult Tasks(long projectId){
             var project = _projectRepository.GetById(projectId);
-            if (project == null)
-            {
+            if (project == null){
                 return BadRequest("No project found");
             }
-
             var tasks = _taskRepository.Get(t => t.ProjectId == project.Id);
-
             return Ok(tasks);
         }
 
-        [HttpPost("{Id:long}/updateTask")]
+        [HttpGet("{Id}/task")]
+        public IActionResult Task(long Id){
+            var task = _taskRepository.GetById(Id);
+            return Ok(task);
+        }
 
-        public IActionResult UpdateTask(long Id, UpdateTaskDto updateTaskDto)
-        {
+
+        [HttpPost("{Id:long}/updateTask")]
+        public IActionResult UpdateTask(long Id, UpdateTaskDto updateTaskDto){
             var projectTask = _taskRepository.GetById(Id);
-            if (projectTask == null)
-            {
+            if (projectTask == null){
                 return BadRequest("Unable to find the task");
             }
             var projectStat = _projectStatsRepository.GetByProjectId(projectTask.ProjectId);
-            if (User.Identity == null)      
-            {
+            if (User.Identity == null)      {
                 return BadRequest("Not logged in");
             }
-
-            
             var user = _userManager.GetUserAsync(User);
-            if (user.Result == null)
-            {
+            if (user.Result == null){
                 return BadRequest("No user found");
             }
             List<UserStat> userStatuses = new();
             var projectUsers = _userTaskRepository.Get(ut => ut.TaskId == projectTask.Id);
-
-            foreach (var pu in projectUsers)
-            {
+            foreach (var pu in projectUsers){
                 var userStat = _userStatsRepository.GetByUserId(pu.UserId);
-                if (userStat == null)
-                {
+                if (userStat == null){
                     continue;
                 }
                 userStatuses.Add(userStat);
             }
-
-            if (projectStat == null)
-            {
+            if (projectStat == null){
                 return BadRequest("No Stats found for the project");
             }
             string? Status = "InProgress";
             decimal Progress = updateTaskDto.Progress;
             if (projectTask.EndDate != null) {
-                if (DateTime.Compare(updateTaskDto.SubmissionDate, (DateTime)projectTask.EndDate) > 0)
-                {
+                if (DateTime.Compare(updateTaskDto.SubmissionDate, (DateTime)projectTask.EndDate) > 0){
                     Status = "Overdue";
-                }
-                else
-                {
-                    if (updateTaskDto.Progress > projectTask.SuccessTreshold)
-                    {
+                }else{
+                    if (updateTaskDto.Progress > projectTask.SuccessTreshold){
                         Status = "Completed";
                         projectStat.TotalTasksCompleted += 1;
-                        foreach (var s in userStatuses)
-                        {
+                        foreach (var s in userStatuses){
                             s.TasksCompleted += 1;
                             _userStatsRepository.Update(s);
                         }
@@ -192,24 +162,14 @@ namespace VolunteerHub.Backend.Controllers
             projectTask.Status = Status;
             _taskRepository.Update(projectTask);
             _taskRepository.Save();
-
             projectStat.UpdatedAt = DateTime.Now;
-
             _projectStatsRepository.Update(projectStat);
             _projectStatsRepository.Save();
-
             _userStatsRepository.Save();
             return Ok(projectTask.ProjectId);
         }
 
-        [HttpGet("{Id}/task")]
-        public IActionResult Task(long Id)
-        {
-
-            var task = _taskRepository.GetById(Id);
-
-            return Ok(task);
-        }
+       
 
         [HttpPost("{Id:long}/editTask")]
         public IActionResult EditTask(long Id, [FromBody] EditTasksDto editTaskDto)
@@ -300,14 +260,10 @@ namespace VolunteerHub.Backend.Controllers
         }
 
         [HttpPost("{Id:long}/kickFromTask")]
-        public IActionResult KickFromTask(long Id,KickFromTaskDto kickFromTaskDto)
-        {
-            if (kickFromTaskDto.UserId == null)
-            {
+        public IActionResult KickFromTask(long Id,KickFromTaskDto kickFromTaskDto){
+            if (kickFromTaskDto.UserId == null){
                 return BadRequest("User not found");
-            }
-
-           
+            }           
             var userTask = _userTaskRepository.Get(ut => ut.TaskId == Id && ut.UserId == kickFromTaskDto.UserId);   
             if (userTask == null) {
                 return BadRequest("User not in task");

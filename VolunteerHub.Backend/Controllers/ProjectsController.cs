@@ -79,6 +79,8 @@ namespace VolunteerHub.Backend.Controllers
                 return BadRequest("Backend Error " + e.Message);
             }
         }
+
+
         [HttpPost("{organizationId:long}/createProject")]
         public IActionResult CreateProject(long organizationId, ProjectsDto projectsDto)
         {
@@ -89,19 +91,15 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return BadRequest("No organization found");
                 }
-                
                 var user = _userManager.GetUserAsync(User);
                 if (user.Result == null)
                 {
                     return Ok("User not found");
                 }
-
                 if(user.Result.Id != org.OwnerId)
                 {
                     return BadRequest("User and organization do not match");
                 }
-
-
                 var project = new Project
                 {
                     Organization = org,
@@ -115,7 +113,6 @@ namespace VolunteerHub.Backend.Controllers
                 };
                 _projectRepository.Add(project);
                 _projectRepository.Save();
-
                 user.Result.ProjectId = project.Id;
                 _ = _userManager.UpdateAsync(user.Result);
                 var projectStat = new ProjectStat { 
@@ -128,8 +125,6 @@ namespace VolunteerHub.Backend.Controllers
                 };
                 _projectStatsRepository.Add(projectStat);
                 _projectStatsRepository.Save();
-                
-
                 return Ok("Success");
             }
             catch (Exception e)
@@ -137,7 +132,8 @@ namespace VolunteerHub.Backend.Controllers
                 return Ok(e);
             }
         }
-        [Authorize(Roles ="Coordinator,Admin")]
+
+        [Authorize(Roles ="Coordinator")]
         [HttpPost("{Id:long}/changeProjectName")]
         public IActionResult ChangeProjectName(long Id, [FromBody] ChangeProjectNameDto changeProjectNameDto)
         {
@@ -157,15 +153,12 @@ namespace VolunteerHub.Backend.Controllers
                 {
                     return Ok("User not found");
                 }
-                
                 var project = _projectRepository.GetById(Id);
                 if (project == null)
                 {
                     return BadRequest("No project found");
                 }
-
                 var org = _organizationRepository.GetById(project.OrganizationId);
-
                 if (org == null)
                 {
                     return BadRequest("No organization Found");
@@ -250,31 +243,7 @@ namespace VolunteerHub.Backend.Controllers
             return Ok("Description Changed sucessfully");
         }
 
-        /*[Authorize(Roles = "Admin")]
-        [Authorize(Roles = "Coordinator")]
-        [HttpPost("{Id:long}/addMembers")]
-        public IActionResult AddMembers(long Id,[FromBody]ProjectUserDto projectUsers) 
-        {
-            if (projectUsers.UserIds == null)
-            {
-                return BadRequest("No users found");
-            }
-            foreach(var Uid in projectUsers.UserIds)
-            {
-                var u = _userManager.FindByIdAsync(Uid);
-                if(u.Result == null)
-                {
-                    continue;
-                }
-                u.Result.ProjectId = Id;
-                var _ = _userManager.UpdateAsync(u.Result).Result;
-            }
-            return Ok("Success");
-        }*/
 
-
-        [Authorize(Roles = "Admin")]
-        [Authorize(Roles = "Coordinator")]
         [HttpPost("{Id:long}/deleteProject")]
         public IActionResult DeleteProject(long Id)
         {
@@ -283,45 +252,31 @@ namespace VolunteerHub.Backend.Controllers
             {
                 return BadRequest("Project Not found");
             }
-
             var organization = _organizationRepository.GetById(project.OrganizationId);
             if (organization == null)
             {
                 return BadRequest("No organization for this project ");
             }
-
-            if (User.Identity == null)
-            {
-                return BadRequest("Null identity");
-            }
-            var userName = User.Identity.Name;
-            if (userName == null)
-            {
-                return Ok("Identity not found");
-            }
-            var user = _userManager.FindByNameAsync(userName);
+            var user = _userManager.GetUserAsync(User);
             if (user.Result == null)
             {
                 return Ok("User not found");
             }
-
-            if(user.Result.Id != organization.OwnerId)
+            if (user.Result.Id != organization.OwnerId)
             {
                 return Forbid("You are not owner of this organization ");
             }
-
             _projectRepository.Delete(project);
             _projectRepository.Save();
             var stats = _projectStatsRepository.GetByProjectId(project.Id);
-            if(stats == null)
+            if (stats == null)
             {
                 return BadRequest("Stats not found for this project");
             }
             _projectStatsRepository.Delete(stats);
             _projectStatsRepository.Save();
+            
             return Ok("Success");
         }
-
-        
     }
 }
